@@ -41,7 +41,6 @@ The codebase is small (~6 source files) with a straightforward flow:
 ## Runtime Requirements
 
 - `podman` or `docker` must be available on PATH
-- `java` must be available on PATH (to run the analyzer JAR)
 - Network access to pull container images and download the analyzer JAR
 
 ## Version Identifiers

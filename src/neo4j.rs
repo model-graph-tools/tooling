@@ -7,14 +7,15 @@ use wildfly_container_versions::WildFlyContainer;
 pub static NEO4J_VERSION: &str = "5.26.12-community";
 pub static NEO4J_IMAGE: &str = "docker.io/neo4j";
 
-const DOCKERFILE_TEMPLATE: &str = "\
-ARG NEO4J_VERSION=5.26
+const DOCKERFILE_TEMPLATE: &str = r#"ARG NEO4J_VERSION=5.26
 FROM neo4j:${NEO4J_VERSION}
 COPY --chown=neo4j:neo4j databases /data/databases
 COPY --chown=neo4j:neo4j transactions /data/transactions
 ENV NEO4J_AUTH=none
 ENV NEO4J_server_databases_default__to__read__only=true
-";
+ENV NEO4J_browser_post__connect__cmd="play https://model-graph-tools.github.io/assets/welcome.html"
+ENV NEO4J_browser_remote__content__hostname__whitelist="model-graph-tools.github.io"
+"#;
 
 #[derive(Eq, PartialEq, Clone)]
 pub struct Neo4J {

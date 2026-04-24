@@ -1,8 +1,8 @@
 use crate::constants::analyzer_url;
-use crate::container::container_command;
+use crate::container::{container_command, create_network, network_name, remove_network};
 use crate::neo4j::Neo4J;
 use crate::progress::{AnalysisStatus, Progress, done, step_header, summary};
-use anyhow::{Context, anyhow, bail};
+use anyhow::{anyhow, bail};
 use console::style;
 use indicatif::MultiProgress;
 use std::collections::VecDeque;
@@ -16,7 +16,6 @@ use tokio::io::AsyncBufReadExt;
 use tokio::task::JoinSet;
 use tokio::time::{Instant, sleep};
 use wado::{AdminContainer, Ports, ServerType, StandaloneInstance};
-use which::which;
 use wildfly_container_versions::WildFlyContainer;
 
 const TOTAL_STEPS: u32 = 4;
@@ -50,7 +49,6 @@ fn wildfly_configurations(wildfly_container: &WildFlyContainer) -> Vec<WildFlyCo
 
 pub async fn analyze(wildfly_container: &WildFlyContainer) -> anyhow::Result<()> {
     crate::container::verify_container_command()?;
-    which("java").with_context(|| "java not found")?;
 
     let instant = Instant::now();
     let version = wildfly_container.display_version();
@@ -69,6 +67,7 @@ async fn run_analysis(wildfly_container: &WildFlyContainer) -> anyhow::Result<()
     let configs = wildfly_configurations(wildfly_container);
     let admin_container = AdminContainer::new(wildfly_container.clone(), ServerType::Standalone);
     let neo4j = Neo4J::new(wildfly_container);
+    let network = network_name(wildfly_container);
 
     let instances: Vec<StandaloneInstance> = configs
         .iter()
@@ -89,11 +88,12 @@ async fn run_analysis(wildfly_container: &WildFlyContainer) -> anyhow::Result<()
         })
         .collect();
 
-    prepare_environment(&instances, &configs, &neo4j).await?;
+    create_network(&network).await?;
+    prepare_environment(&instances, &configs, &neo4j, &network).await?;
     let analyzer_jar = temp_dir().join("analyzer.jar");
 
     let result = async {
-        run_analyzers(&analyzer_jar, &instances, &configs, &neo4j).await?;
+        run_analyzers(&analyzer_jar, &instances, &configs, &neo4j, &network).await?;
         build_neo4j_image(&neo4j).await
     }
     .await;
@@ -101,7 +101,7 @@ async fn run_analysis(wildfly_container: &WildFlyContainer) -> anyhow::Result<()
     if let Err(ref e) = result {
         eprintln!("\n{}: {}", style("Error").red().bold(), e);
     }
-    cleanup(&instances, &neo4j).await?;
+    cleanup(&instances, &neo4j, &network).await?;
 
     result
 }
@@ -112,6 +112,7 @@ async fn prepare_environment(
     instances: &[StandaloneInstance],
     configs: &[WildFlyConfiguration],
     neo4j: &Neo4J,
+    network: &str,
 ) -> anyhow::Result<PathBuf> {
     step_header(1, TOTAL_STEPS, "Preparing environment...");
     let multi_progress = MultiProgress::new();
@@ -133,9 +134,10 @@ async fn prepare_environment(
     for (instance, cfg) in instances.iter().zip(configs.iter()) {
         let instance = instance.clone();
         let config = cfg.config.to_string();
+        let network = network.to_string();
         let progress = Progress::join(&multi_progress, &config);
         tasks.spawn(async move {
-            let result = start_wildfly(&instance, &config, &progress).await;
+            let result = start_wildfly(&instance, &config, &network, &progress).await;
             match &result {
                 Ok(()) => progress.finish_success(Some("ready")),
                 Err(e) => progress.finish_error(&e.to_string()),
@@ -146,9 +148,10 @@ async fn prepare_environment(
 
     // Start Neo4J
     let neo4j_clone = neo4j.clone();
+    let network_clone = network.to_string();
     let neo4j_progress = Progress::join(&multi_progress, "neo4j");
     tasks.spawn(async move {
-        let result = start_neo4j(&neo4j_clone, &neo4j_progress).await;
+        let result = start_neo4j(&neo4j_clone, &network_clone, &neo4j_progress).await;
         match &result {
             Ok(()) => neo4j_progress.finish_success(Some("ready")),
             Err(e) => neo4j_progress.finish_error(&e.to_string()),
@@ -181,12 +184,13 @@ async fn run_analyzers(
     instances: &[StandaloneInstance],
     configs: &[WildFlyConfiguration],
     neo4j: &Neo4J,
+    network: &str,
 ) -> anyhow::Result<()> {
     step_header(2, TOTAL_STEPS, "Analyzing...");
     for (instance, cfg) in instances.iter().zip(configs.iter()) {
         let progress = Progress::new(cfg.config);
         let mode = if cfg.append { "--append" } else { "--clean" };
-        let result = run_analyzer(analyzer_jar, instance, neo4j, mode, &progress).await;
+        let result = run_analyzer(analyzer_jar, instance, neo4j, network, mode, &progress).await;
         match &result {
             Ok(()) => progress.finish_success(Some("done")),
             Err(e) => {
@@ -215,7 +219,11 @@ async fn build_neo4j_image(neo4j: &Neo4J) -> anyhow::Result<()> {
 
 // ------------------------------------------------------ step 4: cleanup
 
-async fn cleanup(instances: &[StandaloneInstance], neo4j: &Neo4J) -> anyhow::Result<()> {
+async fn cleanup(
+    instances: &[StandaloneInstance],
+    neo4j: &Neo4J,
+    network: &str,
+) -> anyhow::Result<()> {
     step_header(4, TOTAL_STEPS, "Cleaning up...");
     let multi_progress = MultiProgress::new();
     let mut tasks = JoinSet::new();
@@ -271,6 +279,19 @@ async fn cleanup(instances: &[StandaloneInstance], neo4j: &Neo4J) -> anyhow::Res
         }
     }
 
+    let network_progress = Progress::new(network);
+    match remove_network(network).await {
+        Ok(()) => {
+            network_progress.finish_success(Some("removed"));
+            status.push(AnalysisStatus::success(network));
+        }
+        Err(e) => {
+            let msg = e.to_string();
+            network_progress.finish_error(&msg);
+            status.push(AnalysisStatus::error(network, &msg));
+        }
+    }
+
     let count = status.len();
     summary(count, &status);
     Ok(())
@@ -281,6 +302,7 @@ async fn cleanup(instances: &[StandaloneInstance], neo4j: &Neo4J) -> anyhow::Res
 async fn start_wildfly(
     instance: &StandaloneInstance,
     configuration: &str,
+    network: &str,
     progress: &Progress,
 ) -> anyhow::Result<()> {
     progress.show_progress("starting container...");
@@ -291,6 +313,8 @@ async fn start_wildfly(
         .arg("--detach")
         .arg("--name")
         .arg(&instance.name)
+        .arg("--network")
+        .arg(network)
         .arg("--publish")
         .arg(format!("{}:8080", instance.ports.http))
         .arg("--publish")
@@ -317,7 +341,7 @@ async fn start_wildfly(
     Ok(())
 }
 
-async fn start_neo4j(neo4j: &Neo4J, progress: &Progress) -> anyhow::Result<()> {
+async fn start_neo4j(neo4j: &Neo4J, network: &str, progress: &Progress) -> anyhow::Result<()> {
     progress.show_progress("creating volume...");
     let mut volume_cmd = container_command()?;
     volume_cmd
@@ -342,6 +366,8 @@ async fn start_neo4j(neo4j: &Neo4J, progress: &Progress) -> anyhow::Result<()> {
         .arg("--detach")
         .arg("--name")
         .arg(neo4j.container_name())
+        .arg("--network")
+        .arg(network)
         .arg("--publish")
         .arg(format!("{}:7687", neo4j.bolt_port))
         .arg("--publish")
@@ -445,38 +471,55 @@ async fn download_analyzer(url: &str, progress: &Progress) -> anyhow::Result<Pat
 
 const ERROR_BUFFER_CAPACITY: usize = 20;
 
+const ANALYZER_IMAGE: &str = "eclipse-temurin:25-jre";
+
 async fn run_analyzer(
     analyzer_jar: &Path,
     instance: &StandaloneInstance,
     neo4j: &Neo4J,
+    network: &str,
     mode: &str,
     progress: &Progress,
 ) -> anyhow::Result<()> {
     progress.show_progress("starting analyzer...");
 
+    let suffix = if mode == "--clean" { "fha" } else { "mp" };
+    let analyzer_container_name = format!(
+        "mgt-analyzer-{}-{}",
+        instance.admin_container.wildfly_container.identifier, suffix
+    );
     let log_path = temp_dir().join(format!(
         "mgt-analyzer-{}-{}.log",
-        instance.admin_container.wildfly_container.identifier,
-        if mode == "--clean" { "fha" } else { "mp" }
+        instance.admin_container.wildfly_container.identifier, suffix
     ));
     let mut log_file = BufWriter::new(File::create(&log_path)?);
     let mut error_buffer: VecDeque<String> = VecDeque::with_capacity(ERROR_BUFFER_CAPACITY);
 
-    let mut child = tokio::process::Command::new("java")
+    let mut cmd = container_command()?;
+    let mut child = cmd
+        .arg("run")
+        .arg("--rm")
+        .arg("--name")
+        .arg(&analyzer_container_name)
+        .arg("--network")
+        .arg(network)
+        .arg("--volume")
+        .arg(format!("{}:/opt/analyzer.jar:ro", analyzer_jar.display()))
+        .arg(ANALYZER_IMAGE)
+        .arg("java")
         .arg("-DbatchMode=true")
         .arg("-jar")
-        .arg(analyzer_jar)
+        .arg("/opt/analyzer.jar")
         .arg(mode)
         .arg("--wildfly")
-        .arg(format!("localhost:{}", instance.ports.management))
+        .arg(format!("{}:9990", instance.name))
         .arg("--wildfly-user")
         .arg("admin")
         .arg("--wildfly-password")
         .arg("admin")
         .arg("--neo4j")
-        .arg(format!("localhost:{}", neo4j.bolt_port))
-        // .arg("/")
-        .arg("/subsystem=undertow")
+        .arg(format!("{}:7687", neo4j.container_name()))
+        .arg("/subsystem=io")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
