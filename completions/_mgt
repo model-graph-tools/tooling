@@ -1,0 +1,342 @@
+#compdef mgt
+
+autoload -U is-at-least
+
+_mgt() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+":: :_mgt_commands" \
+"*::: :->mgt" \
+&& ret=0
+    case $state in
+    (mgt)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:mgt-command-$line[1]:"
+        case $line[1] in
+            (analyze)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+':identifier -- A WildFly version (e.g. 39, 26.1):_default' \
+&& ret=0
+;;
+(neo4j)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+":: :_mgt__subcmd__neo4j_commands" \
+"*::: :->neo4j" \
+&& ret=0
+
+    case $state in
+    (neo4j)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:mgt-neo4j-command-$line[1]:"
+        case $line[1] in
+            (start)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+':identifier -- A WildFly version, version range or a feature pack identifier:_default' \
+":: :_mgt__subcmd__neo4j__subcmd__start_commands" \
+"*::: :->start" \
+&& ret=0
+
+    case $state in
+    (start)
+        words=($line[2] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:mgt-neo4j-start-command-$line[2]:"
+        case $line[2] in
+            (stop)
+_arguments "${_arguments_options[@]}" : \
+'-a[Stop all running Neo4J model databases.]' \
+'--all[Stop all running Neo4J model databases.]' \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+'::identifier -- A WildFly version, version range or a feature pack identifier:_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_mgt__subcmd__neo4j__subcmd__start__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:mgt-neo4j-start-help-command-$line[1]:"
+        case $line[1] in
+            (stop)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_mgt__subcmd__neo4j__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:mgt-neo4j-help-command-$line[1]:"
+        case $line[1] in
+            (start)
+_arguments "${_arguments_options[@]}" : \
+":: :_mgt__subcmd__neo4j__subcmd__help__subcmd__start_commands" \
+"*::: :->start" \
+&& ret=0
+
+    case $state in
+    (start)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:mgt-neo4j-help-start-command-$line[1]:"
+        case $line[1] in
+            (stop)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_mgt__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:mgt-help-command-$line[1]:"
+        case $line[1] in
+            (analyze)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(neo4j)
+_arguments "${_arguments_options[@]}" : \
+":: :_mgt__subcmd__help__subcmd__neo4j_commands" \
+"*::: :->neo4j" \
+&& ret=0
+
+    case $state in
+    (neo4j)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:mgt-help-neo4j-command-$line[1]:"
+        case $line[1] in
+            (start)
+_arguments "${_arguments_options[@]}" : \
+":: :_mgt__subcmd__help__subcmd__neo4j__subcmd__start_commands" \
+"*::: :->start" \
+&& ret=0
+
+    case $state in
+    (start)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:mgt-help-neo4j-start-command-$line[1]:"
+        case $line[1] in
+            (stop)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+}
+
+(( $+functions[_mgt_commands] )) ||
+_mgt_commands() {
+    local commands; commands=(
+'analyze:Analyze the management model of a WildFly instance and build an image with a Neo4J database' \
+'neo4j:Start and stop a Neo4J model database' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'mgt commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__analyze_commands] )) ||
+_mgt__subcmd__analyze_commands() {
+    local commands; commands=()
+    _describe -t commands 'mgt analyze commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__help_commands] )) ||
+_mgt__subcmd__help_commands() {
+    local commands; commands=(
+'analyze:Analyze the management model of a WildFly instance and build an image with a Neo4J database' \
+'neo4j:Start and stop a Neo4J model database' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'mgt help commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__help__subcmd__analyze_commands] )) ||
+_mgt__subcmd__help__subcmd__analyze_commands() {
+    local commands; commands=()
+    _describe -t commands 'mgt help analyze commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__help__subcmd__help_commands] )) ||
+_mgt__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'mgt help help commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__help__subcmd__neo4j_commands] )) ||
+_mgt__subcmd__help__subcmd__neo4j_commands() {
+    local commands; commands=(
+'start:Start one or several Neo4J model databases' \
+    )
+    _describe -t commands 'mgt help neo4j commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__help__subcmd__neo4j__subcmd__start_commands] )) ||
+_mgt__subcmd__help__subcmd__neo4j__subcmd__start_commands() {
+    local commands; commands=(
+'stop:Stop one or several Neo4J model databases' \
+    )
+    _describe -t commands 'mgt help neo4j start commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__help__subcmd__neo4j__subcmd__start__subcmd__stop_commands] )) ||
+_mgt__subcmd__help__subcmd__neo4j__subcmd__start__subcmd__stop_commands() {
+    local commands; commands=()
+    _describe -t commands 'mgt help neo4j start stop commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__neo4j_commands] )) ||
+_mgt__subcmd__neo4j_commands() {
+    local commands; commands=(
+'start:Start one or several Neo4J model databases' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'mgt neo4j commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__neo4j__subcmd__help_commands] )) ||
+_mgt__subcmd__neo4j__subcmd__help_commands() {
+    local commands; commands=(
+'start:Start one or several Neo4J model databases' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'mgt neo4j help commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__neo4j__subcmd__help__subcmd__help_commands] )) ||
+_mgt__subcmd__neo4j__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'mgt neo4j help help commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__neo4j__subcmd__help__subcmd__start_commands] )) ||
+_mgt__subcmd__neo4j__subcmd__help__subcmd__start_commands() {
+    local commands; commands=(
+'stop:Stop one or several Neo4J model databases' \
+    )
+    _describe -t commands 'mgt neo4j help start commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__neo4j__subcmd__help__subcmd__start__subcmd__stop_commands] )) ||
+_mgt__subcmd__neo4j__subcmd__help__subcmd__start__subcmd__stop_commands() {
+    local commands; commands=()
+    _describe -t commands 'mgt neo4j help start stop commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__neo4j__subcmd__start_commands] )) ||
+_mgt__subcmd__neo4j__subcmd__start_commands() {
+    local commands; commands=(
+'stop:Stop one or several Neo4J model databases' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'mgt neo4j start commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__neo4j__subcmd__start__subcmd__help_commands] )) ||
+_mgt__subcmd__neo4j__subcmd__start__subcmd__help_commands() {
+    local commands; commands=(
+'stop:Stop one or several Neo4J model databases' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'mgt neo4j start help commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__neo4j__subcmd__start__subcmd__help__subcmd__help_commands] )) ||
+_mgt__subcmd__neo4j__subcmd__start__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'mgt neo4j start help help commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__neo4j__subcmd__start__subcmd__help__subcmd__stop_commands] )) ||
+_mgt__subcmd__neo4j__subcmd__start__subcmd__help__subcmd__stop_commands() {
+    local commands; commands=()
+    _describe -t commands 'mgt neo4j start help stop commands' commands "$@"
+}
+(( $+functions[_mgt__subcmd__neo4j__subcmd__start__subcmd__stop_commands] )) ||
+_mgt__subcmd__neo4j__subcmd__start__subcmd__stop_commands() {
+    local commands; commands=()
+    _describe -t commands 'mgt neo4j start stop commands' commands "$@"
+}
+
+if [ "$funcstack[1]" = "_mgt" ]; then
+    _mgt "$@"
+else
+    compdef _mgt mgt
+fi

@@ -1,0 +1,175 @@
+use console::{Emoji, style, truncate_str};
+use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
+use std::time::Duration;
+use tokio::time::Instant;
+
+const NAME_WIDTH: usize = 30;
+
+static WRENCH: Emoji<'_, '_> = Emoji("\u{1f527}  ", "");
+static MAG: Emoji<'_, '_> = Emoji("\u{1f50d}  ", "");
+static PACKAGE: Emoji<'_, '_> = Emoji("\u{1f4e6}  ", "");
+static BROOM: Emoji<'_, '_> = Emoji("\u{1f9f9}  ", "");
+static SPARKLE: Emoji<'_, '_> = Emoji("\u{2728}  ", ":-)  ");
+
+pub fn step_header(step: u32, total: u32, description: &str) {
+    let emoji = match step {
+        1 => WRENCH,
+        2 => MAG,
+        3 => PACKAGE,
+        4 => BROOM,
+        _ => WRENCH,
+    };
+    println!(
+        "{} {}{}",
+        style(format!("[{}/{}]", step, total)).bold().dim(),
+        emoji,
+        description
+    );
+}
+
+pub fn done(instant: Instant) {
+    println!(
+        "\n{}Done in {}",
+        SPARKLE,
+        style(HumanDuration(instant.elapsed())).cyan()
+    );
+}
+
+// ------------------------------------------------------ analysis status
+
+#[derive(Clone)]
+pub struct AnalysisStatus {
+    pub identifier: String,
+    pub success: bool,
+    pub error_message: String,
+}
+
+impl AnalysisStatus {
+    pub fn success(identifier: &str) -> Self {
+        AnalysisStatus {
+            identifier: identifier.to_string(),
+            success: true,
+            error_message: String::new(),
+        }
+    }
+
+    pub fn error(identifier: &str, error_message: &str) -> Self {
+        AnalysisStatus {
+            identifier: identifier.to_string(),
+            success: false,
+            error_message: error_message.to_string(),
+        }
+    }
+}
+
+pub fn summary(count: usize, status: &[AnalysisStatus]) {
+    let failed: Vec<_> = status.iter().filter(|s| !s.success).collect();
+    if !failed.is_empty() {
+        println!();
+        for s in &failed {
+            println!(
+                "  {} {} {}",
+                style("\u{2717}").red().bold(),
+                style(&s.identifier).cyan(),
+                style(&s.error_message).red()
+            );
+        }
+        println!(
+            "\n  {} of {} resource(s) failed",
+            style(failed.len()).red().bold(),
+            style(count).cyan()
+        );
+    }
+}
+
+// ------------------------------------------------------ progress
+
+#[derive(Clone)]
+pub struct Progress {
+    name: String,
+    bar: ProgressBar,
+}
+
+impl Progress {
+    pub fn join(multi_progress: &MultiProgress, name: &str) -> Progress {
+        let progress = Progress {
+            name: name.to_string(),
+            bar: Self::spinner(),
+        };
+        progress.bar.enable_steady_tick(Duration::from_millis(100));
+        multi_progress.add(progress.bar.clone());
+        progress
+            .bar
+            .set_message(style(name).cyan().to_string());
+        progress
+    }
+
+    pub fn new(name: &str) -> Progress {
+        let progress = Progress {
+            name: name.to_string(),
+            bar: Self::spinner(),
+        };
+        progress.bar.enable_steady_tick(Duration::from_millis(100));
+        progress
+            .bar
+            .set_message(style(name).cyan().to_string());
+        progress
+    }
+
+    fn spinner() -> ProgressBar {
+        ProgressBar::new_spinner().with_style(
+            ProgressStyle::default_spinner()
+                .tick_strings(&[
+                    "\u{280b}", "\u{2819}", "\u{2839}", "\u{2838}", "\u{283c}", "\u{2834}",
+                    "\u{2826}", "\u{2827}", "\u{2807}", "\u{280f}", " ",
+                ])
+                .template("  {spinner:.dim.bold} {wide_msg}")
+                .expect("Invalid spinner template"),
+        )
+    }
+
+    fn finished_style() -> ProgressStyle {
+        ProgressStyle::default_spinner()
+            .template("  {wide_msg}")
+            .expect("Invalid template")
+    }
+
+    pub fn show_progress(&self, text: &str) {
+        let padded = format!("{:<width$}", self.name, width = NAME_WIDTH);
+        self.bar.set_message(format!(
+            "{} {}",
+            style(padded).cyan(),
+            style(truncate_str(text, 80, "...")).dim()
+        ));
+    }
+
+    pub fn finish_success(&self, status: Option<&str>) {
+        self.bar.set_style(Self::finished_style());
+        let padded = format!("{:<width$}", self.name, width = NAME_WIDTH);
+        let msg = match status {
+            Some(s) => format!(
+                "{} {} {}",
+                style("\u{2713}").green().bold(),
+                style(padded).cyan(),
+                style(s).dim()
+            ),
+            None => format!(
+                "{} {}",
+                style("\u{2713}").green().bold(),
+                style(padded).cyan()
+            ),
+        };
+        self.bar.finish_with_message(msg);
+    }
+
+    pub fn finish_error(&self, err: &str) {
+        self.bar.set_style(Self::finished_style());
+        let padded = format!("{:<width$}", self.name, width = NAME_WIDTH);
+        self.bar.abandon_with_message(format!(
+            "{} {} {}",
+            style("\u{2717}").red().bold(),
+            style(padded).cyan(),
+            style(err).red()
+        ));
+    }
+}
