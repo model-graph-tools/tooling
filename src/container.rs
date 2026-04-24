@@ -1,7 +1,10 @@
+use crate::progress::Progress;
 use anyhow::{Error, bail};
 use std::path::PathBuf;
 use std::process::Stdio;
+use std::time::Duration;
 use tokio::process::Command;
+use tokio::time::sleep;
 use which::which;
 use wildfly_container_versions::WildFlyContainer;
 
@@ -64,4 +67,105 @@ pub async fn remove_network(name: &str) -> anyhow::Result<()> {
         );
     }
     Ok(())
+}
+
+pub async fn stop_container(name: &str) -> anyhow::Result<()> {
+    let mut cmd = container_command()?;
+    cmd.arg("stop")
+        .arg(name)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let output = cmd.output().await?;
+    if !output.status.success() {
+        bail!(
+            "Failed to stop {}: {}",
+            name,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(())
+}
+
+pub async fn remove_volume(name: &str) -> anyhow::Result<()> {
+    let mut cmd = container_command()?;
+    cmd.arg("volume")
+        .arg("rm")
+        .arg(name)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let output = cmd.output().await?;
+    if !output.status.success() {
+        bail!(
+            "Failed to remove volume {}: {}",
+            name,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(())
+}
+
+pub async fn remove_container(name: &str) -> anyhow::Result<()> {
+    let mut cmd = container_command()?;
+    cmd.arg("rm")
+        .arg(name)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let output = cmd.output().await?;
+    if !output.status.success() {
+        bail!(
+            "Failed to remove container {}: {}",
+            name,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(())
+}
+
+const MGT_NEO4J_PREFIX: &str = "mgt-neo4j-";
+
+pub async fn running_neo4j_containers() -> anyhow::Result<Vec<String>> {
+    let mut cmd = container_command()?;
+    cmd.arg("ps")
+        .arg("--filter")
+        .arg(format!("name={}", MGT_NEO4J_PREFIX))
+        .arg("--format")
+        .arg("{{.Names}}")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let output = cmd.output().await?;
+    if !output.status.success() {
+        bail!(
+            "Failed to list containers: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let names = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(|l| l.to_string())
+        .collect();
+    Ok(names)
+}
+
+const MAX_HEALTHCHECK_ATTEMPTS: u32 = 30;
+
+pub async fn healthcheck(url: &str, progress: &Progress) -> anyhow::Result<()> {
+    let client = reqwest::Client::new();
+    for attempt in 1..=MAX_HEALTHCHECK_ATTEMPTS {
+        progress.show_progress(&format!(
+            "healthcheck {}/{}",
+            attempt, MAX_HEALTHCHECK_ATTEMPTS
+        ));
+        if let Ok(response) = client.get(url).send().await
+            && response.status().is_success()
+        {
+            return Ok(());
+        }
+        sleep(Duration::from_secs(1)).await;
+    }
+    bail!(
+        "Healthcheck failed after {} attempts: {}",
+        MAX_HEALTHCHECK_ATTEMPTS,
+        url
+    )
 }

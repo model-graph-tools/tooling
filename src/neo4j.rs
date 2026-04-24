@@ -48,7 +48,10 @@ impl Neo4J {
     }
 
     pub fn image_tag(&self) -> String {
-        format!("mgt-neo4j:{}", self.wildfly_container.identifier)
+        format!(
+            "quay.io/modelgraphtools/wildfly-management-model:{}",
+            self.wildfly_container.version
+        )
     }
 
     pub async fn build_image(&self, progress: &Progress) -> anyhow::Result<()> {

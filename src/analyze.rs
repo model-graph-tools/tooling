@@ -1,7 +1,10 @@
 use crate::constants::analyzer_url;
-use crate::container::{container_command, create_network, network_name, remove_network};
+use crate::container::{
+    container_command, create_network, healthcheck, network_name, remove_container, remove_network,
+    remove_volume, stop_container,
+};
 use crate::neo4j::Neo4J;
-use crate::progress::{AnalysisStatus, Progress, done, step_header, summary};
+use crate::progress::{CommandStatus, Progress, done, step_header, summary};
 use anyhow::{anyhow, bail};
 use console::style;
 use indicatif::MultiProgress;
@@ -11,10 +14,9 @@ use std::fs::{self, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::time::Duration;
 use tokio::io::AsyncBufReadExt;
 use tokio::task::JoinSet;
-use tokio::time::{Instant, sleep};
+use tokio::time::Instant;
 use wado::{AdminContainer, Ports, ServerType, StandaloneInstance};
 use wildfly_container_versions::WildFlyContainer;
 
@@ -227,7 +229,7 @@ async fn cleanup(
     step_header(4, TOTAL_STEPS, "Cleaning up...");
     let multi_progress = MultiProgress::new();
     let mut tasks = JoinSet::new();
-    let mut status: Vec<AnalysisStatus> = Vec::new();
+    let mut status: Vec<CommandStatus> = Vec::new();
 
     // Stop WildFly instances (parallel)
     for instance in instances {
@@ -237,12 +239,12 @@ async fn cleanup(
             match stop_container(&container_name).await {
                 Ok(()) => {
                     progress.finish_success(Some("stopped"));
-                    AnalysisStatus::success(&container_name)
+                    CommandStatus::success(&container_name)
                 }
                 Err(e) => {
                     let msg = e.to_string();
                     progress.finish_error(&msg);
-                    AnalysisStatus::error(&container_name, &msg)
+                    CommandStatus::error(&container_name, &msg)
                 }
             }
         });
@@ -256,12 +258,12 @@ async fn cleanup(
     match remove_container(&neo4j_container).await {
         Ok(()) => {
             neo4j_progress.finish_success(Some("removed"));
-            status.push(AnalysisStatus::success(&neo4j_container));
+            status.push(CommandStatus::success(&neo4j_container));
         }
         Err(e) => {
             let msg = e.to_string();
             neo4j_progress.finish_error(&msg);
-            status.push(AnalysisStatus::error(&neo4j_container, &msg));
+            status.push(CommandStatus::error(&neo4j_container, &msg));
         }
     }
 
@@ -270,12 +272,12 @@ async fn cleanup(
     match remove_volume(&volume_name).await {
         Ok(()) => {
             volume_progress.finish_success(Some("removed"));
-            status.push(AnalysisStatus::success(&volume_name));
+            status.push(CommandStatus::success(&volume_name));
         }
         Err(e) => {
             let msg = e.to_string();
             volume_progress.finish_error(&msg);
-            status.push(AnalysisStatus::error(&volume_name, &msg));
+            status.push(CommandStatus::error(&volume_name, &msg));
         }
     }
 
@@ -283,12 +285,12 @@ async fn cleanup(
     match remove_network(network).await {
         Ok(()) => {
             network_progress.finish_success(Some("removed"));
-            status.push(AnalysisStatus::success(network));
+            status.push(CommandStatus::success(network));
         }
         Err(e) => {
             let msg = e.to_string();
             network_progress.finish_error(&msg);
-            status.push(AnalysisStatus::error(network, &msg));
+            status.push(CommandStatus::error(network, &msg));
         }
     }
 
@@ -397,57 +399,6 @@ async fn start_neo4j(neo4j: &Neo4J, network: &str, progress: &Progress) -> anyho
     Ok(())
 }
 
-async fn stop_container(name: &str) -> anyhow::Result<()> {
-    let mut cmd = container_command()?;
-    cmd.arg("stop")
-        .arg(name)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let output = cmd.output().await?;
-    if !output.status.success() {
-        bail!(
-            "Failed to stop {}: {}",
-            name,
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    Ok(())
-}
-
-async fn remove_container(name: &str) -> anyhow::Result<()> {
-    let mut cmd = container_command()?;
-    cmd.arg("rm")
-        .arg(name)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let output = cmd.output().await?;
-    if !output.status.success() {
-        bail!(
-            "Failed to remove container {}: {}",
-            name,
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    Ok(())
-}
-
-async fn remove_volume(name: &str) -> anyhow::Result<()> {
-    let mut cmd = container_command()?;
-    cmd.arg("volume")
-        .arg("rm")
-        .arg(name)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let output = cmd.output().await?;
-    if !output.status.success() {
-        bail!(
-            "Failed to remove volume {}: {}",
-            name,
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    Ok(())
-}
 
 // ------------------------------------------------------ analyzer
 
@@ -519,7 +470,7 @@ async fn run_analyzer(
         .arg("admin")
         .arg("--neo4j")
         .arg(format!("{}:7687", neo4j.container_name()))
-        .arg("/subsystem=io")
+        .arg("/")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
@@ -665,27 +616,3 @@ mod tests {
     }
 }
 
-// ------------------------------------------------------ healthcheck
-
-const MAX_HEALTHCHECK_ATTEMPTS: u32 = 30;
-
-async fn healthcheck(url: &str, progress: &Progress) -> anyhow::Result<()> {
-    let client = reqwest::Client::new();
-    for attempt in 1..=MAX_HEALTHCHECK_ATTEMPTS {
-        progress.show_progress(&format!(
-            "healthcheck {}/{}",
-            attempt, MAX_HEALTHCHECK_ATTEMPTS
-        ));
-        if let Ok(response) = client.get(url).send().await
-            && response.status().is_success()
-        {
-            return Ok(());
-        }
-        sleep(Duration::from_secs(1)).await;
-    }
-    bail!(
-        "Healthcheck failed after {} attempts: {}",
-        MAX_HEALTHCHECK_ATTEMPTS,
-        url
-    )
-}

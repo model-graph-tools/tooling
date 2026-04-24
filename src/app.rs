@@ -21,26 +21,29 @@ pub fn build_app() -> Command {
                 .required(true)
                 .help("A WildFly version (e.g. 39, 26.1)")))
 
-        // neo4j
-        .subcommand(Command::new("neo4j")
-            .about("Start and stop a Neo4J model database")
+        // start
+        .subcommand(Command::new("start")
+            .about("Start Neo4J model DB containers")
+            .arg(Arg::new("identifier")
+                .required(true)
+                .help("A WildFly version, version range or a feature pack identifier")))
 
-            // start
-            .subcommand(Command::new("start")
-                .about("Start one or several Neo4J model databases")
-                .arg(Arg::new("identifier")
-                    .required(true)
-                    .help("A WildFly version, version range or a feature pack identifier"))
+        // stop
+        .subcommand(Command::new("stop")
+            .about("Stop Neo4J model DB containers")
+            .arg(Arg::new("identifier")
+                .required_unless_present("all")
+                .help("A WildFly version, version range or a feature pack identifier"))
+            .arg(Arg::new("all")
+                .short('a')
+                .long("all")
+                .action(ArgAction::SetTrue)
+                .help("Stop all running Neo4J model DB containers")))
 
-            // stop
-            .subcommand(Command::new("stop")
-                .about("Stop one or several Neo4J model databases")
-                .arg(Arg::new("identifier")
-                    .required_unless_present("all")
-                    .help("A WildFly version, version range or a feature pack identifier"))
-                .arg(Arg::new("all")
-                    .short('a')
-                    .long("all")
-                    .action(ArgAction::SetTrue)
-                    .help("Stop all running Neo4J model databases.")))))
+        // browse
+        .subcommand(Command::new("browse")
+            .about("Open the Neo4J browser for a running Neo4J model DB")
+            .arg(Arg::new("identifier")
+                .required(true)
+                .help("A WildFly version (e.g. 39, 26.1)")))
 }

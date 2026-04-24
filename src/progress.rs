@@ -38,15 +38,15 @@ pub fn done(instant: Instant) {
 // ------------------------------------------------------ analysis status
 
 #[derive(Clone)]
-pub struct AnalysisStatus {
+pub struct CommandStatus {
     pub identifier: String,
     pub success: bool,
     pub error_message: String,
 }
 
-impl AnalysisStatus {
+impl CommandStatus {
     pub fn success(identifier: &str) -> Self {
-        AnalysisStatus {
+        CommandStatus {
             identifier: identifier.to_string(),
             success: true,
             error_message: String::new(),
@@ -54,15 +54,22 @@ impl AnalysisStatus {
     }
 
     pub fn error(identifier: &str, error_message: &str) -> Self {
-        AnalysisStatus {
+        CommandStatus {
             identifier: identifier.to_string(),
             success: false,
             error_message: error_message.to_string(),
         }
     }
+
+    pub fn from_result<T>(identifier: &str, result: &anyhow::Result<T>) -> Self {
+        match result {
+            Ok(_) => Self::success(identifier),
+            Err(e) => Self::error(identifier, &e.to_string()),
+        }
+    }
 }
 
-pub fn summary(count: usize, status: &[AnalysisStatus]) {
+pub fn summary(count: usize, status: &[CommandStatus]) {
     let failed: Vec<_> = status.iter().filter(|s| !s.success).collect();
     if !failed.is_empty() {
         println!();
