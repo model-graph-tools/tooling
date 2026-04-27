@@ -1,8 +1,8 @@
 use crate::container::container_command;
 use crate::progress::Progress;
+use crate::source::Source;
 use anyhow::bail;
 use std::process::Stdio;
-use wildfly_container_versions::WildFlyContainer;
 
 pub static NEO4J_VERSION: &str = "5.26.12-community";
 pub static NEO4J_IMAGE: &str = "docker.io/neo4j";
@@ -26,9 +26,8 @@ pub struct Ports {
 }
 
 impl Ports {
-    pub fn default_ports(wildfly_container: &WildFlyContainer) -> Ports {
-        let offset =
-            (wildfly_container.version.major * 10 + wildfly_container.version.minor) as u16;
+    pub fn default_ports(source: &Source) -> Ports {
+        let offset = source.port_offset();
         Ports {
             bolt: 6000 + offset,
             http: 7000 + offset,
@@ -40,13 +39,13 @@ impl Ports {
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct Neo4JImage {
-    pub wildfly_container: WildFlyContainer,
+    pub source: Source,
 }
 
 impl Neo4JImage {
-    pub fn new(wildfly_container: &WildFlyContainer) -> Neo4JImage {
+    pub fn new(source: &Source) -> Neo4JImage {
         Neo4JImage {
-            wildfly_container: wildfly_container.clone(),
+            source: source.clone(),
         }
     }
 
@@ -55,10 +54,20 @@ impl Neo4JImage {
     }
 
     pub fn image_tag(&self) -> String {
-        format!(
-            "quay.io/modelgraphtools/wildfly-management-model:{}",
-            self.wildfly_container.version
-        )
+        match &self.source {
+            Source::WildFly(wc) => {
+                format!(
+                    "quay.io/modelgraphtools/wildfly-management-model:{}",
+                    wc.version
+                )
+            }
+            Source::FeaturePack(fp) => {
+                format!(
+                    "quay.io/modelgraphtools/wildfly-management-model:{}-{}",
+                    fp.shortcut, fp.version
+                )
+            }
+        }
     }
 
     pub async fn build_image(
@@ -106,19 +115,16 @@ pub struct Neo4JContainer {
 
 impl Neo4JContainer {
     pub fn new(image: Neo4JImage) -> Neo4JContainer {
-        let ports = Ports::default_ports(&image.wildfly_container);
+        let ports = Ports::default_ports(&image.source);
         Neo4JContainer { image, ports }
     }
 
     pub fn container_name(&self) -> String {
-        format!("mgt-neo4j-{}", self.image.wildfly_container.identifier)
+        format!("mgt-neo4j-{}", self.image.source.container_id())
     }
 
     pub fn volume_name(&self) -> String {
-        format!(
-            "mgt-neo4j-data-{}",
-            self.image.wildfly_container.identifier
-        )
+        format!("mgt-neo4j-data-{}", self.image.source.container_id())
     }
 }
 

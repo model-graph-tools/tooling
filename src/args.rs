@@ -1,16 +1,16 @@
+use crate::source::Source;
 use clap::ArgMatches;
-use wildfly_container_versions::WildFlyContainer;
 
-pub fn wildfly_container_argument(matches: &ArgMatches) -> WildFlyContainer {
+pub fn source_argument(matches: &ArgMatches) -> Source {
     matches
-        .get_one::<WildFlyContainer>("identifier")
+        .get_one::<Source>("identifier")
         .expect("Argument <identifier> expected!")
         .clone()
 }
 
-pub fn wildfly_containers_argument(matches: &ArgMatches) -> Vec<WildFlyContainer> {
+pub fn sources_argument(matches: &ArgMatches) -> Vec<Source> {
     matches
-        .get_one::<Vec<WildFlyContainer>>("identifier")
+        .get_one::<Vec<Source>>("identifier")
         .expect("Argument <identifier> expected!")
         .clone()
 }

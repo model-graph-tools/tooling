@@ -1,18 +1,18 @@
 use crate::container::{container_command, healthcheck, verify_container_command};
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
+use crate::source::Source;
 use anyhow::bail;
 use console::style;
 use indicatif::MultiProgress;
 use std::process::Stdio;
 use tokio::task::JoinSet;
 use tokio::time::Instant;
-use wildfly_container_versions::WildFlyContainer;
 
-pub async fn start(wildfly_containers: &[WildFlyContainer]) -> anyhow::Result<()> {
+pub async fn start(sources: &[Source]) -> anyhow::Result<()> {
     verify_container_command()?;
 
-    let count = wildfly_containers.len();
+    let count = sources.len();
     let noun = if count == 1 { "container" } else { "containers" };
     println!(
         "\n{}",
@@ -23,10 +23,11 @@ pub async fn start(wildfly_containers: &[WildFlyContainer]) -> anyhow::Result<()
     let multi_progress = MultiProgress::new();
     let mut tasks = JoinSet::new();
 
-    for wc in wildfly_containers {
-        let image = Neo4JImage::new(wc);
+    for source in sources {
+        let image = Neo4JImage::new(source);
         let neo4j = Neo4JContainer::new(image);
-        let progress = Progress::join(&multi_progress, &wc.display_version());
+        let display = source.display_name();
+        let progress = Progress::join(&multi_progress, &display);
         tasks.spawn(async move {
             let result = start_neo4j(&neo4j, &progress).await;
             match &result {
@@ -38,10 +39,7 @@ pub async fn start(wildfly_containers: &[WildFlyContainer]) -> anyhow::Result<()
                 }
                 Err(e) => progress.finish_error(&e.to_string()),
             }
-            CommandStatus::from_result(
-                &neo4j.image.wildfly_container.display_version(),
-                &result,
-            )
+            CommandStatus::from_result(&display, &result)
         });
     }
 

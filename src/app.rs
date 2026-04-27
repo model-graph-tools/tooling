@@ -16,24 +16,24 @@ pub fn build_app() -> Command {
 
         // analyze
         .subcommand(Command::new("analyze")
-            .about("Analyze the management model of a WildFly instance and build an image with a Neo4J database")
+            .about("Analyze the management model of a WildFly instance or feature pack and build an image with a Neo4J database")
             .arg(Arg::new("identifier")
                 .required(true)
-                .help("A WildFly version (e.g. 39, 26.1)")))
+                .help("A WildFly version (e.g. 39, 26.1) or feature pack (e.g. cloud:9.0.0.Final)")))
 
         // start
         .subcommand(Command::new("start")
             .about("Start Neo4J model DB containers")
             .arg(Arg::new("identifier")
                 .required(true)
-                .help("A WildFly version, version range or a feature pack identifier")))
+                .help("WildFly versions, feature packs, or a mix (e.g. 34,cloud:9.0.0.Final)")))
 
         // stop
         .subcommand(Command::new("stop")
             .about("Stop Neo4J model DB containers")
             .arg(Arg::new("identifier")
                 .required_unless_present("all")
-                .help("A WildFly version, version range or a feature pack identifier"))
+                .help("WildFly versions, feature packs, or a mix (e.g. 34,cloud:9.0.0.Final)"))
             .arg(Arg::new("all")
                 .short('a')
                 .long("all")
@@ -49,7 +49,7 @@ pub fn build_app() -> Command {
             .about("Open the Neo4J browser for a running Neo4J model DB")
             .arg(Arg::new("identifier")
                 .required(true)
-                .help("A WildFly version (e.g. 39, 26.1)")))
+                .help("A WildFly version (e.g. 39, 26.1) or feature pack (e.g. cloud:9.0.0.Final)")))
 
         // completions
         .subcommand(Command::new("completions")

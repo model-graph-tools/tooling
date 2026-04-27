@@ -1,16 +1,13 @@
 use crate::container::{running_neo4j_containers, stop_container, verify_container_command};
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
+use crate::source::Source;
 use console::style;
 use indicatif::MultiProgress;
 use tokio::task::JoinSet;
 use tokio::time::Instant;
-use wildfly_container_versions::WildFlyContainer;
 
-pub async fn stop(
-    wildfly_containers: Option<&[WildFlyContainer]>,
-    all: bool,
-) -> anyhow::Result<()> {
+pub async fn stop(sources: Option<&[Source]>, all: bool) -> anyhow::Result<()> {
     verify_container_command()?;
 
     let container_names: Vec<String> = if all {
@@ -20,10 +17,10 @@ pub async fn stop(
             .map(|r| r.container.container_name())
             .collect()
     } else {
-        wildfly_containers
+        sources
             .expect("Argument <identifier> expected!")
             .iter()
-            .map(|wc| Neo4JContainer::new(Neo4JImage::new(wc)).container_name())
+            .map(|s| Neo4JContainer::new(Neo4JImage::new(s)).container_name())
             .collect()
     };
 

@@ -5,6 +5,7 @@ use crate::container::{
 };
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, step_header, summary};
+use crate::source::Source;
 use anyhow::{anyhow, bail};
 use console::style;
 use indicatif::MultiProgress;
@@ -49,28 +50,35 @@ fn wildfly_configurations(wildfly_container: &WildFlyContainer) -> Vec<WildFlyCo
 
 // ------------------------------------------------------ analyze
 
-pub async fn analyze(wildfly_container: &WildFlyContainer) -> anyhow::Result<()> {
+pub async fn analyze(source: &Source) -> anyhow::Result<()> {
     crate::container::verify_container_command()?;
 
     let instant = Instant::now();
-    let version = wildfly_container.display_version();
     println!(
         "\n{}",
-        style(format!("Analyzing WildFly {}", version)).bold()
+        style(format!("Analyzing {}", source.display_name())).bold()
     );
 
-    run_analysis(wildfly_container).await?;
+    match source {
+        Source::WildFly(wc) => run_wildfly_analysis(wc, source).await?,
+        Source::FeaturePack(fp) => run_feature_pack_analysis(fp, source).await?,
+    }
 
     done(instant);
     Ok(())
 }
 
-async fn run_analysis(wildfly_container: &WildFlyContainer) -> anyhow::Result<()> {
+// ------------------------------------------------------ WildFly analysis
+
+async fn run_wildfly_analysis(
+    wildfly_container: &WildFlyContainer,
+    source: &Source,
+) -> anyhow::Result<()> {
     let configs = wildfly_configurations(wildfly_container);
     let admin_container = AdminContainer::new(wildfly_container.clone(), ServerType::Standalone);
-    let neo4j_image = Neo4JImage::new(wildfly_container);
+    let neo4j_image = Neo4JImage::new(source);
     let neo4j = Neo4JContainer::new(neo4j_image);
-    let network = network_name(wildfly_container);
+    let network = network_name(source);
 
     let instances: Vec<StandaloneInstance> = configs
         .iter()
@@ -93,10 +101,9 @@ async fn run_analysis(wildfly_container: &WildFlyContainer) -> anyhow::Result<()
 
     create_network(&network).await?;
     prepare_environment(&instances, &configs, &neo4j, &network).await?;
-    let analyzer_jar = temp_dir().join("analyzer.jar");
 
     let result = async {
-        run_analyzers(&analyzer_jar, &instances, &configs, &neo4j, &network).await?;
+        run_analyzers(&instances, &configs, &neo4j, &network).await?;
         build_neo4j_image(&neo4j).await
     }
     .await;
@@ -107,6 +114,249 @@ async fn run_analysis(wildfly_container: &WildFlyContainer) -> anyhow::Result<()
     cleanup(&instances, &neo4j, &network).await?;
 
     result
+}
+
+// ------------------------------------------------------ feature pack analysis
+
+async fn run_feature_pack_analysis(
+    fp: &crate::feature_pack::FeaturePack,
+    source: &Source,
+) -> anyhow::Result<()> {
+    let neo4j_image = Neo4JImage::new(source);
+    let neo4j = Neo4JContainer::new(neo4j_image);
+    let network = network_name(source);
+
+    create_network(&network).await?;
+
+    let result = async {
+        // Step 1: Prepare environment (download doc-zip + start Neo4J)
+        step_header(1, TOTAL_STEPS, "Preparing environment...");
+        let multi_progress = MultiProgress::new();
+        let mut tasks = JoinSet::new();
+
+        let dl_progress = Progress::join(&multi_progress, "doc-zip");
+        let url = fp.download_url();
+        tasks.spawn(async move {
+            let result = download_doc_zip(&url, &dl_progress).await;
+            match &result {
+                Ok(_) => dl_progress.finish_success(Some("ready")),
+                Err(e) => dl_progress.finish_error(&e.to_string()),
+            }
+            result
+        });
+
+        let neo4j_clone = neo4j.clone();
+        let network_clone = network.clone();
+        let neo4j_progress = Progress::join(&multi_progress, "neo4j");
+        tasks.spawn(async move {
+            let result = start_neo4j(&neo4j_clone, &network_clone, &neo4j_progress).await;
+            match &result {
+                Ok(()) => neo4j_progress.finish_success(Some("ready")),
+                Err(e) => neo4j_progress.finish_error(&e.to_string()),
+            }
+            result.map(|()| PathBuf::new())
+        });
+
+        let results = tasks.join_all().await;
+        let mut doc_zip_path: Option<PathBuf> = None;
+        for result in results {
+            let path = result?;
+            if !path.as_os_str().is_empty() {
+                doc_zip_path = Some(path);
+            }
+        }
+        let doc_zip_path =
+            doc_zip_path.ok_or_else(|| anyhow!("Doc-zip download did not produce a result"))?;
+
+        // Step 2: Run analyzer with doc-zip
+        step_header(2, TOTAL_STEPS, "Analyzing...");
+        let progress = Progress::new(&fp.display_name());
+        let result =
+            run_doc_zip_analyzer(&doc_zip_path, &neo4j, &network, &progress).await;
+        match &result {
+            Ok(()) => progress.finish_success(Some("done")),
+            Err(e) => progress.finish_error(&e.to_string()),
+        }
+        result?;
+
+        // Step 3: Build Neo4J image
+        build_neo4j_image(&neo4j).await
+    }
+    .await;
+
+    if let Err(ref e) = result {
+        eprintln!("\n{}: {}", style("Error").red().bold(), e);
+    }
+
+    // Step 4: Cleanup
+    step_header(4, TOTAL_STEPS, "Cleaning up...");
+    let multi_progress = MultiProgress::new();
+    let mut status: Vec<CommandStatus> = Vec::new();
+
+    let neo4j_container = neo4j.container_name();
+    let neo4j_progress = Progress::join(&multi_progress, &neo4j_container);
+    let _ = stop_container(&neo4j_container).await;
+    match remove_container(&neo4j_container).await {
+        Ok(()) => {
+            neo4j_progress.finish_success(Some("removed"));
+            status.push(CommandStatus::success(&neo4j_container));
+        }
+        Err(e) => {
+            let msg = e.to_string();
+            neo4j_progress.finish_error(&msg);
+            status.push(CommandStatus::error(&neo4j_container, &msg));
+        }
+    }
+
+    let volume_name = neo4j.volume_name();
+    let volume_progress = Progress::new(&volume_name);
+    match remove_volume(&volume_name).await {
+        Ok(()) => {
+            volume_progress.finish_success(Some("removed"));
+            status.push(CommandStatus::success(&volume_name));
+        }
+        Err(e) => {
+            let msg = e.to_string();
+            volume_progress.finish_error(&msg);
+            status.push(CommandStatus::error(&volume_name, &msg));
+        }
+    }
+
+    let network_progress = Progress::new(&network);
+    match remove_network(&network).await {
+        Ok(()) => {
+            network_progress.finish_success(Some("removed"));
+            status.push(CommandStatus::success(&network));
+        }
+        Err(e) => {
+            let msg = e.to_string();
+            network_progress.finish_error(&msg);
+            status.push(CommandStatus::error(&network, &msg));
+        }
+    }
+
+    let count = status.len();
+    summary(count, &status);
+
+    result
+}
+
+async fn download_doc_zip(url: &str, progress: &Progress) -> anyhow::Result<PathBuf> {
+    let filename = url.rsplit('/').next().unwrap_or("doc.zip");
+    let path = temp_dir().join(filename);
+    if path.exists() {
+        return Ok(path);
+    }
+
+    progress.show_progress("downloading...");
+    let response = reqwest::get(url).await?;
+    if response.status().is_success() {
+        let mut file = File::create(&path)?;
+        let content = response.bytes().await?;
+        file.write_all(&content)?;
+        Ok(path)
+    } else {
+        Err(anyhow!("Failed to download {}: {}", url, response.status()))
+    }
+}
+
+const ANALYZER_IMAGE: &str = "eclipse-temurin:25-jre";
+
+async fn run_doc_zip_analyzer(
+    doc_zip_path: &Path,
+    neo4j: &Neo4JContainer,
+    network: &str,
+    progress: &Progress,
+) -> anyhow::Result<()> {
+    progress.show_progress("starting analyzer...");
+
+    let analyzer_jar = temp_dir().join("analyzer.jar");
+    if !analyzer_jar.exists() {
+        let dl_progress = Progress::new("analyzer");
+        download_analyzer(&analyzer_url(), &dl_progress).await?;
+        dl_progress.finish_success(Some("ready"));
+    }
+
+    let analyzer_container_name = format!("mgt-analyzer-{}", neo4j.container_name());
+    let log_path = temp_dir().join(format!("{}.log", analyzer_container_name));
+    let mut log_file = BufWriter::new(File::create(&log_path)?);
+    let mut error_buffer: VecDeque<String> = VecDeque::with_capacity(ERROR_BUFFER_CAPACITY);
+
+    let mut cmd = container_command()?;
+    let mut child = cmd
+        .arg("run")
+        .arg("--rm")
+        .arg("--name")
+        .arg(&analyzer_container_name)
+        .arg("--network")
+        .arg(network)
+        .arg("--volume")
+        .arg(format!("{}:/opt/analyzer.jar:ro", analyzer_jar.display()))
+        .arg("--volume")
+        .arg(format!("{}:/opt/doc.zip:ro", doc_zip_path.display()))
+        .arg(ANALYZER_IMAGE)
+        .arg("java")
+        .arg("-DbatchMode=true")
+        .arg("-jar")
+        .arg("/opt/analyzer.jar")
+        .arg("--clean")
+        .arg("--doc-zip")
+        .arg("/opt/doc.zip")
+        .arg("--neo4j")
+        .arg(format!("{}:7687", neo4j.container_name()))
+        .arg("/")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+
+    let stdout = child.stdout.take().expect("stdout should be piped");
+    let stderr = child.stderr.take().expect("stderr should be piped");
+    let mut stdout_lines = tokio::io::BufReader::new(stdout).lines();
+    let mut stderr_lines = tokio::io::BufReader::new(stderr).lines();
+    let mut stdout_done = false;
+    let mut stderr_done = false;
+
+    loop {
+        tokio::select! {
+            result = stdout_lines.next_line(), if !stdout_done => {
+                match result? {
+                    Some(line) => {
+                        let _ = writeln!(log_file, "{}", line);
+                        append_line(&mut error_buffer, &line);
+                        if let Some(resource) = parse_analyzer_resource(&line) {
+                            progress.show_progress(resource);
+                        }
+                    }
+                    None => stdout_done = true,
+                }
+            }
+            result = stderr_lines.next_line(), if !stderr_done => {
+                match result? {
+                    Some(line) => {
+                        let _ = writeln!(log_file, "{}", line);
+                        append_line(&mut error_buffer, &line);
+                    }
+                    None => stderr_done = true,
+                }
+            }
+        }
+        if stdout_done && stderr_done {
+            break;
+        }
+    }
+
+    drop(log_file);
+    let status = child.wait().await?;
+    if !status.success() {
+        print_errors(&error_buffer, &log_path);
+        bail!(
+            "Analyzer failed with exit code {}",
+            status.code().unwrap_or(-1)
+        );
+    }
+
+    let _ = fs::remove_file(&log_path);
+    Ok(())
 }
 
 // ------------------------------------------------------ step 1: prepare environment
@@ -183,17 +433,17 @@ enum PrepareResult {
 // ------------------------------------------------------ step 2: analyze
 
 async fn run_analyzers(
-    analyzer_jar: &Path,
     instances: &[StandaloneInstance],
     configs: &[WildFlyConfiguration],
     neo4j: &Neo4JContainer,
     network: &str,
 ) -> anyhow::Result<()> {
     step_header(2, TOTAL_STEPS, "Analyzing...");
+    let analyzer_jar = temp_dir().join("analyzer.jar");
     for (instance, cfg) in instances.iter().zip(configs.iter()) {
         let progress = Progress::new(cfg.config);
         let mode = if cfg.append { "--append" } else { "--clean" };
-        let result = run_analyzer(analyzer_jar, instance, neo4j, network, mode, &progress).await;
+        let result = run_analyzer(&analyzer_jar, instance, neo4j, network, mode, &progress).await;
         match &result {
             Ok(()) => progress.finish_success(Some("done")),
             Err(e) => {
@@ -430,8 +680,6 @@ async fn download_analyzer(url: &str, progress: &Progress) -> anyhow::Result<Pat
 
 const ERROR_BUFFER_CAPACITY: usize = 20;
 
-const ANALYZER_IMAGE: &str = "eclipse-temurin:25-jre";
-
 async fn run_analyzer(
     analyzer_jar: &Path,
     instance: &StandaloneInstance,
@@ -623,4 +871,3 @@ mod tests {
         assert_eq!(configs.len(), 1);
     }
 }
-

@@ -1,10 +1,11 @@
 use std::ffi::OsStr;
 
+use crate::feature_pack::known_shortcuts;
 use clap_complete::engine::CompletionCandidate;
 use semver::Version;
 use wildfly_container_versions::{VERSIONS, WildFlyContainer};
 
-pub fn complete_versions(current: &OsStr) -> Vec<CompletionCandidate> {
+pub fn complete_identifiers(current: &OsStr) -> Vec<CompletionCandidate> {
     let input = current.to_str().unwrap_or("");
     let parameter = if input.is_empty() { None } else { Some(input) };
     let (prefix_0, prefix_1, suggestions) = find_suggestions(parameter);
@@ -34,10 +35,19 @@ fn find_suggestions(parameter: Option<&str>) -> (String, String, Vec<String>) {
             .unwrap_or_default();
         (token, versions)
     } else {
-        ("", all_simple_versions())
+        let mut completions = all_simple_versions();
+        completions.extend(feature_pack_completions());
+        ("", completions)
     };
 
     (prefix.to_string(), out_token.to_string(), suggestions)
+}
+
+fn feature_pack_completions() -> Vec<String> {
+    known_shortcuts()
+        .iter()
+        .map(|s| format!("{}:", s))
+        .collect()
 }
 
 fn parse_prefix_token(parameter: Option<&str>) -> (&str, &str) {

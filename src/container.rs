@@ -1,5 +1,7 @@
+use crate::feature_pack::FeaturePack;
 use crate::neo4j::{Neo4JContainer, Neo4JImage, RunningNeo4JContainer};
 use crate::progress::Progress;
+use crate::source::Source;
 use anyhow::{Error, bail};
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -29,8 +31,8 @@ fn is_podman() -> bool {
     which("podman").is_ok()
 }
 
-pub fn network_name(wildfly_container: &WildFlyContainer) -> String {
-    format!("mgt-network-{}", wildfly_container.identifier)
+pub fn network_name(source: &Source) -> String {
+    format!("mgt-network-{}", source.container_id())
 }
 
 pub async fn create_network(name: &str) -> anyhow::Result<()> {
@@ -124,13 +126,19 @@ pub async fn remove_container(name: &str) -> anyhow::Result<()> {
 
 const MGT_NEO4J_PREFIX: &str = "mgt-neo4j-";
 
-fn parse_identifier(name: &str) -> Option<WildFlyContainer> {
+fn parse_source_from_container_name(name: &str) -> Option<Source> {
     let id_str = name.strip_prefix(MGT_NEO4J_PREFIX)?;
-    let id: u16 = id_str.parse().ok()?;
-    let major = id / 10;
-    let minor = id % 10;
-    let version_str = format!("{}.{}", major, minor);
-    WildFlyContainer::version(&version_str).ok()
+
+    if let Ok(id) = id_str.parse::<u16>() {
+        let major = id / 10;
+        let minor = id % 10;
+        let version_str = format!("{}.{}", major, minor);
+        WildFlyContainer::version(&version_str)
+            .ok()
+            .map(Source::WildFly)
+    } else {
+        FeaturePack::from_shortcut(id_str).map(Source::FeaturePack)
+    }
 }
 
 pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContainer>> {
@@ -155,8 +163,8 @@ pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContai
         .filter_map(|line| {
             let parts: Vec<&str> = line.splitn(3, '|').collect();
             if parts.len() == 3 {
-                let wc = parse_identifier(parts[1])?;
-                let image = Neo4JImage::new(&wc);
+                let source = parse_source_from_container_name(parts[1])?;
+                let image = Neo4JImage::new(&source);
                 let container = Neo4JContainer::new(image);
                 Some(RunningNeo4JContainer {
                     container,
@@ -171,9 +179,9 @@ pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContai
     containers.sort_by(|a, b| {
         a.container
             .image
-            .wildfly_container
-            .identifier
-            .cmp(&b.container.image.wildfly_container.identifier)
+            .source
+            .port_offset()
+            .cmp(&b.container.image.source.port_offset())
     });
     Ok(containers)
 }
