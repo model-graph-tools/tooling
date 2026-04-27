@@ -1,11 +1,20 @@
 use std::ffi::OsStr;
 
-use crate::feature_pack::known_shortcuts;
+use crate::feature_pack::all_feature_pack_identifiers;
 use clap_complete::engine::CompletionCandidate;
 use semver::Version;
 use wildfly_container_versions::{VERSIONS, WildFlyContainer};
 
-pub fn complete_identifiers(current: &OsStr) -> Vec<CompletionCandidate> {
+pub fn complete_single_identifier(_current: &OsStr) -> Vec<CompletionCandidate> {
+    let mut completions = all_simple_versions();
+    completions.extend(feature_pack_completions());
+    completions
+        .into_iter()
+        .map(CompletionCandidate::new)
+        .collect()
+}
+
+pub fn complete_multiple_identifiers(current: &OsStr) -> Vec<CompletionCandidate> {
     let input = current.to_str().unwrap_or("");
     let parameter = if input.is_empty() { None } else { Some(input) };
     let (prefix_0, prefix_1, suggestions) = find_suggestions(parameter);
@@ -44,7 +53,7 @@ fn find_suggestions(parameter: Option<&str>) -> (String, String, Vec<String>) {
 }
 
 fn feature_pack_completions() -> Vec<String> {
-    known_shortcuts().iter().map(|s| s.to_string()).collect()
+    all_feature_pack_identifiers()
 }
 
 fn parse_prefix_token(parameter: Option<&str>) -> (&str, &str) {
@@ -120,5 +129,167 @@ fn simple_version(version: &Version) -> String {
         format!("{}", version.major)
     } else {
         format!("{}.{}", version.major, version.minor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn candidates_to_strings(candidates: Vec<CompletionCandidate>) -> Vec<String> {
+        candidates
+            .iter()
+            .map(|c| c.get_value().to_str().unwrap().to_string())
+            .collect()
+    }
+
+    fn single(input: &str) -> Vec<String> {
+        candidates_to_strings(complete_single_identifier(OsStr::new(input)))
+    }
+
+    fn multiple(input: &str) -> Vec<String> {
+        candidates_to_strings(complete_multiple_identifiers(OsStr::new(input)))
+    }
+
+    // ------------------------------------------------------ single identifier
+
+    #[test]
+    fn single_empty_returns_versions_and_feature_packs() {
+        let results = single("");
+        assert!(results.contains(&"34".to_string()));
+        assert!(results.contains(&"26.1".to_string()));
+        assert!(results.contains(&"ai".to_string()));
+        assert!(results.contains(&"grpc".to_string()));
+        assert!(results.contains(&"ai:0.9.0".to_string()));
+    }
+
+    #[test]
+    fn single_includes_all_feature_pack_shortcuts() {
+        let results = single("");
+        for shortcut in &["ai", "graphql", "grpc", "keycloak", "myfaces"] {
+            assert!(
+                results.contains(&shortcut.to_string()),
+                "Missing shortcut: {}",
+                shortcut
+            );
+        }
+    }
+
+    #[test]
+    fn single_includes_versioned_feature_packs() {
+        let results = single("");
+        assert!(results.contains(&"ai:0.9.0".to_string()));
+        assert!(results.contains(&"grpc:0.1.16".to_string()));
+    }
+
+    #[test]
+    fn single_no_range_suggestions() {
+        let results = single("");
+        assert!(!results.iter().any(|r| r.contains("..")));
+    }
+
+    #[test]
+    fn single_no_comma_handling() {
+        let results = single("34,");
+        assert!(!results.iter().any(|r| r.starts_with("34,")));
+    }
+
+    // ------------------------------------------------------ multiple identifiers
+
+    #[test]
+    fn multiple_empty_returns_versions_and_feature_packs() {
+        let results = multiple("");
+        assert!(results.contains(&"34".to_string()));
+        assert!(results.contains(&"ai".to_string()));
+        assert!(results.contains(&"ai:0.9.0".to_string()));
+    }
+
+    #[test]
+    fn multiple_after_comma_returns_fresh_completions() {
+        let results = multiple("34,");
+        assert!(results.iter().any(|r| r.starts_with("34,")));
+        assert!(results.iter().any(|r| r.ends_with("ai")));
+    }
+
+    #[test]
+    fn multiple_after_comma_with_partial() {
+        let results = multiple("34,2");
+        assert!(results.iter().all(|r| r.starts_with("34,")));
+    }
+
+    #[test]
+    fn multiple_range_start_suggests_versions_after() {
+        let results = multiple("20..");
+        assert!(!results.is_empty());
+        for r in &results {
+            assert!(r.starts_with("20.."), "Expected prefix '20..': {}", r);
+        }
+    }
+
+    #[test]
+    fn multiple_complete_range_returns_empty() {
+        let results = multiple("20..25");
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn multiple_bare_dots_suggests_all_but_first() {
+        let results = multiple("..");
+        assert!(!results.is_empty());
+        let all = all_simple_versions();
+        assert!(!results.iter().any(|r| r == &format!("..{}", all[0])));
+    }
+
+    #[test]
+    fn multiple_comma_then_range() {
+        let results = multiple("34,20..");
+        assert!(results.iter().all(|r| r.starts_with("34,20..")));
+        assert!(!results.is_empty());
+    }
+
+    // ------------------------------------------------------ internal helpers
+
+    #[test]
+    fn parse_prefix_token_no_input() {
+        let (prefix, token) = parse_prefix_token(None);
+        assert_eq!(prefix, "");
+        assert_eq!(token, "");
+    }
+
+    #[test]
+    fn parse_prefix_token_simple() {
+        let (prefix, token) = parse_prefix_token(Some("34"));
+        assert_eq!(prefix, "");
+        assert_eq!(token, "34");
+    }
+
+    #[test]
+    fn parse_prefix_token_after_comma() {
+        let (prefix, token) = parse_prefix_token(Some("34,26"));
+        assert_eq!(prefix, "34,");
+        assert_eq!(token, "26");
+    }
+
+    #[test]
+    fn parse_prefix_token_trailing_comma() {
+        let (prefix, token) = parse_prefix_token(Some("34,"));
+        assert_eq!(prefix, "34,");
+        assert_eq!(token, "");
+    }
+
+    #[test]
+    fn feature_pack_completions_include_both_forms() {
+        let completions = feature_pack_completions();
+        assert!(completions.contains(&"ai".to_string()));
+        assert!(completions.contains(&"ai:0.9.0".to_string()));
+    }
+
+    #[test]
+    fn all_simple_versions_no_duplicates() {
+        let versions = all_simple_versions();
+        let mut deduped = versions.clone();
+        deduped.sort();
+        deduped.dedup();
+        assert_eq!(versions.len(), deduped.len());
     }
 }

@@ -46,10 +46,10 @@ pub fn build_app() -> Command {
 
         // browse
         .subcommand(Command::new("browse")
-            .about("Open the Neo4J browser for a running Neo4J model DB")
+            .about("Open the Neo4J browser for running Neo4J model DBs")
             .arg(Arg::new("identifier")
                 .required(true)
-                .help("A WildFly version (e.g. 39, 26.1) or feature pack (e.g. ai, graphql)")))
+                .help("WildFly versions, feature packs, or a mix (e.g. 34,ai,graphql)")))
 
         // completions
         .subcommand(Command::new("completions")

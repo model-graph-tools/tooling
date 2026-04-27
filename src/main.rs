@@ -17,7 +17,7 @@ mod stop;
 use crate::analyze::analyze;
 use crate::args::{source_argument, sources_argument};
 use crate::browse::browse;
-use crate::completion::complete_identifiers;
+use crate::completion::{complete_multiple_identifiers, complete_single_identifier};
 use crate::completions::completions;
 use crate::ps::ps;
 use crate::source::Source;
@@ -32,25 +32,25 @@ fn build_app_full() -> clap::Command {
         .mut_subcommand("analyze", |sub_cmd| {
             sub_cmd.mut_arg("identifier", |arg| {
                 arg.value_parser(parse_source)
-                    .add(ArgValueCompleter::new(complete_identifiers))
+                    .add(ArgValueCompleter::new(complete_single_identifier))
             })
         })
         .mut_subcommand("start", |sub_cmd| {
             sub_cmd.mut_arg("identifier", |arg| {
                 arg.value_parser(parse_source_list)
-                    .add(ArgValueCompleter::new(complete_identifiers))
+                    .add(ArgValueCompleter::new(complete_multiple_identifiers))
             })
         })
         .mut_subcommand("stop", |sub_cmd| {
             sub_cmd.mut_arg("identifier", |arg| {
                 arg.value_parser(parse_source_list)
-                    .add(ArgValueCompleter::new(complete_identifiers))
+                    .add(ArgValueCompleter::new(complete_multiple_identifiers))
             })
         })
         .mut_subcommand("browse", |sub_cmd| {
             sub_cmd.mut_arg("identifier", |arg| {
-                arg.value_parser(parse_source)
-                    .add(ArgValueCompleter::new(complete_identifiers))
+                arg.value_parser(parse_source_list)
+                    .add(ArgValueCompleter::new(complete_multiple_identifiers))
             })
         })
 }
@@ -70,7 +70,12 @@ async fn main() -> Result<()> {
             stop(sources.map(|v| v.as_slice()), all).await
         }
         Some(("ps", _)) => ps().await,
-        Some(("browse", m)) => Ok(browse(&source_argument(m))?),
+        Some(("browse", m)) => {
+            for source in &sources_argument(m) {
+                browse(source)?;
+            }
+            Ok(())
+        }
         Some(("completions", m)) => completions(m),
         _ => unreachable!("Unknown subcommand"),
     }
