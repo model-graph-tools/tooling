@@ -1,5 +1,5 @@
 use crate::container::{container_command, healthcheck, verify_container_command};
-use crate::neo4j::Neo4J;
+use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
 use anyhow::bail;
 use console::style;
@@ -24,7 +24,8 @@ pub async fn start(wildfly_containers: &[WildFlyContainer]) -> anyhow::Result<()
     let mut tasks = JoinSet::new();
 
     for wc in wildfly_containers {
-        let neo4j = Neo4J::new(wc);
+        let image = Neo4JImage::new(wc);
+        let neo4j = Neo4JContainer::new(image);
         let progress = Progress::join(&multi_progress, &wc.display_version());
         tasks.spawn(async move {
             let result = start_neo4j(&neo4j, &progress).await;
@@ -32,12 +33,15 @@ pub async fn start(wildfly_containers: &[WildFlyContainer]) -> anyhow::Result<()
                 Ok(()) => {
                     progress.finish_success(Some(&format!(
                         "http://localhost:{}",
-                        neo4j.http_port
+                        neo4j.ports.http
                     )));
                 }
                 Err(e) => progress.finish_error(&e.to_string()),
             }
-            CommandStatus::from_result(&neo4j.wildfly_container.display_version(), &result)
+            CommandStatus::from_result(
+                &neo4j.image.wildfly_container.display_version(),
+                &result,
+            )
         });
     }
 
@@ -47,7 +51,7 @@ pub async fn start(wildfly_containers: &[WildFlyContainer]) -> anyhow::Result<()
     Ok(())
 }
 
-async fn start_neo4j(neo4j: &Neo4J, progress: &Progress) -> anyhow::Result<()> {
+async fn start_neo4j(neo4j: &Neo4JContainer, progress: &Progress) -> anyhow::Result<()> {
     progress.show_progress("starting container...");
     let mut cmd = container_command()?;
     cmd.arg("run")
@@ -56,12 +60,12 @@ async fn start_neo4j(neo4j: &Neo4J, progress: &Progress) -> anyhow::Result<()> {
         .arg("--name")
         .arg(neo4j.container_name())
         .arg("--publish")
-        .arg(format!("{}:7474", neo4j.http_port))
+        .arg(format!("{}:7474", neo4j.ports.http))
         .arg("--publish")
-        .arg(format!("{}:7687", neo4j.bolt_port))
+        .arg(format!("{}:7687", neo4j.ports.bolt))
         .arg("--env")
         .arg("NEO4J_AUTH=none")
-        .arg(neo4j.image_tag())
+        .arg(neo4j.image.image_tag())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     let output = cmd.output().await?;
@@ -74,7 +78,7 @@ async fn start_neo4j(neo4j: &Neo4J, progress: &Progress) -> anyhow::Result<()> {
 
     progress.show_progress("waiting for Neo4J...");
     healthcheck(
-        &format!("http://localhost:{}/browser", neo4j.http_port),
+        &format!("http://localhost:{}/browser", neo4j.ports.http),
         progress,
     )
     .await?;

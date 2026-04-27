@@ -17,34 +17,41 @@ ENV NEO4J_browser_post__connect__cmd="play https://model-graph-tools.github.io/a
 ENV NEO4J_browser_remote__content__hostname__whitelist="model-graph-tools.github.io"
 "#;
 
-#[derive(Eq, PartialEq, Clone)]
-pub struct Neo4J {
-    pub wildfly_container: WildFlyContainer,
-    pub bolt_port: u16,
-    pub http_port: u16,
+// ------------------------------------------------------ ports
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Ports {
+    pub bolt: u16,
+    pub http: u16,
 }
 
-impl Neo4J {
-    pub fn new(wildfly_container: &WildFlyContainer) -> Neo4J {
+impl Ports {
+    pub fn default_ports(wildfly_container: &WildFlyContainer) -> Ports {
         let offset =
             (wildfly_container.version.major * 10 + wildfly_container.version.minor) as u16;
-        Neo4J {
+        Ports {
+            bolt: 6000 + offset,
+            http: 7000 + offset,
+        }
+    }
+}
+
+// ------------------------------------------------------ image
+
+#[derive(Clone, Eq, PartialEq)]
+pub struct Neo4JImage {
+    pub wildfly_container: WildFlyContainer,
+}
+
+impl Neo4JImage {
+    pub fn new(wildfly_container: &WildFlyContainer) -> Neo4JImage {
+        Neo4JImage {
             wildfly_container: wildfly_container.clone(),
-            bolt_port: 6000 + offset,
-            http_port: 7000 + offset,
         }
     }
 
-    pub fn image_name() -> String {
+    pub fn base_image_name() -> String {
         format!("{}:{}", NEO4J_IMAGE, NEO4J_VERSION)
-    }
-
-    pub fn container_name(&self) -> String {
-        format!("mgt-neo4j-{}", self.wildfly_container.identifier)
-    }
-
-    pub fn volume_name(&self) -> String {
-        format!("mgt-neo4j-data-{}", self.wildfly_container.identifier)
     }
 
     pub fn image_tag(&self) -> String {
@@ -54,14 +61,17 @@ impl Neo4J {
         )
     }
 
-    pub async fn build_image(&self, progress: &Progress) -> anyhow::Result<()> {
+    pub async fn build_image(
+        &self,
+        container_name: &str,
+        progress: &Progress,
+    ) -> anyhow::Result<()> {
         let build_dir = tempfile::tempdir()?;
         let build_path = build_dir.path();
 
         progress.show_progress("copying database files...");
-        let container = self.container_name();
-        copy_from_container(&container, "/data/databases", build_path).await?;
-        copy_from_container(&container, "/data/transactions", build_path).await?;
+        copy_from_container(container_name, "/data/databases", build_path).await?;
+        copy_from_container(container_name, "/data/transactions", build_path).await?;
 
         std::fs::write(build_path.join("Dockerfile"), DOCKERFILE_TEMPLATE)?;
 
@@ -85,6 +95,34 @@ impl Neo4J {
         Ok(())
     }
 }
+
+// ------------------------------------------------------ container
+
+#[derive(Clone, Eq, PartialEq)]
+pub struct Neo4JContainer {
+    pub image: Neo4JImage,
+    pub ports: Ports,
+}
+
+impl Neo4JContainer {
+    pub fn new(image: Neo4JImage) -> Neo4JContainer {
+        let ports = Ports::default_ports(&image.wildfly_container);
+        Neo4JContainer { image, ports }
+    }
+
+    pub fn container_name(&self) -> String {
+        format!("mgt-neo4j-{}", self.image.wildfly_container.identifier)
+    }
+
+    pub fn volume_name(&self) -> String {
+        format!(
+            "mgt-neo4j-data-{}",
+            self.image.wildfly_container.identifier
+        )
+    }
+}
+
+// ------------------------------------------------------ helper
 
 async fn copy_from_container(
     container: &str,

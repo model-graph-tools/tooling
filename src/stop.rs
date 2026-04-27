@@ -1,5 +1,5 @@
 use crate::container::{running_neo4j_containers, stop_container, verify_container_command};
-use crate::neo4j::Neo4J;
+use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
 use console::style;
 use indicatif::MultiProgress;
@@ -19,7 +19,7 @@ pub async fn stop(
         wildfly_containers
             .expect("Argument <identifier> expected!")
             .iter()
-            .map(|wc| Neo4J::new(wc).container_name())
+            .map(|wc| Neo4JContainer::new(Neo4JImage::new(wc)).container_name())
             .collect()
     };
 

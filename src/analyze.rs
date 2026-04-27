@@ -3,7 +3,7 @@ use crate::container::{
     container_command, create_network, healthcheck, network_name, remove_container, remove_network,
     remove_volume, stop_container,
 };
-use crate::neo4j::Neo4J;
+use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, step_header, summary};
 use anyhow::{anyhow, bail};
 use console::style;
@@ -68,7 +68,8 @@ pub async fn analyze(wildfly_container: &WildFlyContainer) -> anyhow::Result<()>
 async fn run_analysis(wildfly_container: &WildFlyContainer) -> anyhow::Result<()> {
     let configs = wildfly_configurations(wildfly_container);
     let admin_container = AdminContainer::new(wildfly_container.clone(), ServerType::Standalone);
-    let neo4j = Neo4J::new(wildfly_container);
+    let neo4j_image = Neo4JImage::new(wildfly_container);
+    let neo4j = Neo4JContainer::new(neo4j_image);
     let network = network_name(wildfly_container);
 
     let instances: Vec<StandaloneInstance> = configs
@@ -113,7 +114,7 @@ async fn run_analysis(wildfly_container: &WildFlyContainer) -> anyhow::Result<()
 async fn prepare_environment(
     instances: &[StandaloneInstance],
     configs: &[WildFlyConfiguration],
-    neo4j: &Neo4J,
+    neo4j: &Neo4JContainer,
     network: &str,
 ) -> anyhow::Result<PathBuf> {
     step_header(1, TOTAL_STEPS, "Preparing environment...");
@@ -185,7 +186,7 @@ async fn run_analyzers(
     analyzer_jar: &Path,
     instances: &[StandaloneInstance],
     configs: &[WildFlyConfiguration],
-    neo4j: &Neo4J,
+    neo4j: &Neo4JContainer,
     network: &str,
 ) -> anyhow::Result<()> {
     step_header(2, TOTAL_STEPS, "Analyzing...");
@@ -206,14 +207,17 @@ async fn run_analyzers(
 
 // ------------------------------------------------------ step 3: build neo4j image
 
-async fn build_neo4j_image(neo4j: &Neo4J) -> anyhow::Result<()> {
+async fn build_neo4j_image(neo4j: &Neo4JContainer) -> anyhow::Result<()> {
     step_header(3, TOTAL_STEPS, "Building Neo4J image...");
-    let progress = Progress::new(&neo4j.image_tag());
+    let progress = Progress::new(&neo4j.image.image_tag());
 
     progress.show_progress("stopping neo4j...");
     stop_container(&neo4j.container_name()).await?;
 
-    neo4j.build_image(&progress).await?;
+    neo4j
+        .image
+        .build_image(&neo4j.container_name(), &progress)
+        .await?;
 
     progress.finish_success(Some("ready"));
     Ok(())
@@ -223,7 +227,7 @@ async fn build_neo4j_image(neo4j: &Neo4J) -> anyhow::Result<()> {
 
 async fn cleanup(
     instances: &[StandaloneInstance],
-    neo4j: &Neo4J,
+    neo4j: &Neo4JContainer,
     network: &str,
 ) -> anyhow::Result<()> {
     step_header(4, TOTAL_STEPS, "Cleaning up...");
@@ -343,7 +347,11 @@ async fn start_wildfly(
     Ok(())
 }
 
-async fn start_neo4j(neo4j: &Neo4J, network: &str, progress: &Progress) -> anyhow::Result<()> {
+async fn start_neo4j(
+    neo4j: &Neo4JContainer,
+    network: &str,
+    progress: &Progress,
+) -> anyhow::Result<()> {
     progress.show_progress("creating volume...");
     let mut volume_cmd = container_command()?;
     volume_cmd
@@ -371,14 +379,14 @@ async fn start_neo4j(neo4j: &Neo4J, network: &str, progress: &Progress) -> anyho
         .arg("--network")
         .arg(network)
         .arg("--publish")
-        .arg(format!("{}:7687", neo4j.bolt_port))
+        .arg(format!("{}:7687", neo4j.ports.bolt))
         .arg("--publish")
-        .arg(format!("{}:7474", neo4j.http_port))
+        .arg(format!("{}:7474", neo4j.ports.http))
         .arg("--env")
         .arg("NEO4J_AUTH=none")
         .arg("--volume")
         .arg(format!("{}:/data", neo4j.volume_name()))
-        .arg(Neo4J::image_name())
+        .arg(Neo4JImage::base_image_name())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     let output = run_cmd.output().await?;
@@ -391,7 +399,7 @@ async fn start_neo4j(neo4j: &Neo4J, network: &str, progress: &Progress) -> anyho
 
     progress.show_progress("waiting for Neo4J...");
     healthcheck(
-        &format!("http://localhost:{}/browser", neo4j.http_port),
+        &format!("http://localhost:{}/browser", neo4j.ports.http),
         progress,
     )
     .await?;
@@ -427,7 +435,7 @@ const ANALYZER_IMAGE: &str = "eclipse-temurin:25-jre";
 async fn run_analyzer(
     analyzer_jar: &Path,
     instance: &StandaloneInstance,
-    neo4j: &Neo4J,
+    neo4j: &Neo4JContainer,
     network: &str,
     mode: &str,
     progress: &Progress,

@@ -123,6 +123,54 @@ pub async fn remove_container(name: &str) -> anyhow::Result<()> {
 
 const MGT_NEO4J_PREFIX: &str = "mgt-neo4j-";
 
+pub struct ContainerInfo {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub status: String,
+    pub ports: String,
+}
+
+pub async fn neo4j_container_details() -> anyhow::Result<Vec<ContainerInfo>> {
+    let mut cmd = container_command()?;
+    cmd.arg("ps")
+        .arg("--filter")
+        .arg(format!("name={}", MGT_NEO4J_PREFIX))
+        .arg("--format")
+        .arg("{{.ID}}|{{.Names}}|{{.Status}}|{{.Ports}}")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let output = cmd.output().await?;
+    if !output.status.success() {
+        bail!(
+            "Failed to list containers: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let mut containers: Vec<ContainerInfo> = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter(|l| !l.is_empty())
+        .filter_map(|line| {
+            let parts: Vec<&str> = line.splitn(4, '|').collect();
+            if parts.len() == 4 {
+                let name = parts[1].to_string();
+                let version = name.strip_prefix(MGT_NEO4J_PREFIX).unwrap_or(&name).to_string();
+                Some(ContainerInfo {
+                    id: parts[0].to_string(),
+                    name,
+                    version,
+                    status: parts[2].to_string(),
+                    ports: parts[3].to_string(),
+                })
+            } else {
+                None
+            }
+        })
+        .collect();
+    containers.sort_by(|a, b| a.version.cmp(&b.version));
+    Ok(containers)
+}
+
 pub async fn running_neo4j_containers() -> anyhow::Result<Vec<String>> {
     let mut cmd = container_command()?;
     cmd.arg("ps")
