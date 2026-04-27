@@ -82,6 +82,13 @@ mod tests {
     }
 
     #[test]
+    fn parse_versioned_feature_pack() {
+        let source = Source::parse("ai:0.9.0").unwrap();
+        assert!(matches!(source, Source::FeaturePack(_)));
+        assert_eq!(source.display_name(), "ai 0.9.0");
+    }
+
+    #[test]
     fn parse_invalid_input() {
         assert!(Source::parse("invalid").is_err());
     }

@@ -137,9 +137,7 @@ fn parse_source_from_container_name(name: &str) -> Option<Source> {
             .ok()
             .map(Source::WildFly)
     } else {
-        FeaturePack::from_container_id(id_str)
-            .cloned()
-            .map(Source::FeaturePack)
+        FeaturePack::from_container_id(id_str).map(Source::FeaturePack)
     }
 }
 
