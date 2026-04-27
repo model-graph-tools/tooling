@@ -9,13 +9,12 @@ pub enum Source {
 
 impl Source {
     pub fn parse(input: &str) -> anyhow::Result<Source> {
-        if input.contains(':') {
-            FeaturePack::parse(input).map(Source::FeaturePack)
-        } else {
-            WildFlyContainer::version(input)
-                .map(Source::WildFly)
-                .map_err(|e| anyhow::anyhow!("{}", e))
+        if let Ok(fp) = FeaturePack::parse(input) {
+            return Ok(Source::FeaturePack(fp));
         }
+        WildFlyContainer::version(input)
+            .map(Source::WildFly)
+            .map_err(|e| anyhow::anyhow!("{}", e))
     }
 
     pub fn parse_list(input: &str) -> anyhow::Result<Vec<Source>> {
@@ -77,9 +76,9 @@ mod tests {
 
     #[test]
     fn parse_feature_pack() {
-        let source = Source::parse("cloud:9.0.0.Final").unwrap();
+        let source = Source::parse("ai").unwrap();
         assert!(matches!(source, Source::FeaturePack(_)));
-        assert_eq!(source.display_name(), "cloud 9.0.0.Final");
+        assert_eq!(source.display_name(), "ai 0.9.0");
     }
 
     #[test]
@@ -96,14 +95,14 @@ mod tests {
 
     #[test]
     fn parse_list_feature_packs_only() {
-        let sources = Source::parse_list("cloud:9.0.0.Final,grpc:0.1.16.Final").unwrap();
+        let sources = Source::parse_list("ai,grpc").unwrap();
         assert_eq!(sources.len(), 2);
         assert!(sources.iter().all(|s| matches!(s, Source::FeaturePack(_))));
     }
 
     #[test]
     fn parse_list_mixed() {
-        let sources = Source::parse_list("34,cloud:9.0.0.Final,26.1").unwrap();
+        let sources = Source::parse_list("34,ai,26.1").unwrap();
         assert_eq!(sources.len(), 3);
         assert!(matches!(sources[0], Source::WildFly(_)));
         assert!(matches!(sources[1], Source::FeaturePack(_)));
@@ -125,8 +124,8 @@ mod tests {
 
     #[test]
     fn port_offset_feature_pack() {
-        let source = Source::parse("cloud:9.0.0.Final").unwrap();
-        assert_eq!(source.port_offset(), 2);
+        let source = Source::parse("ai").unwrap();
+        assert_eq!(source.port_offset(), 1);
     }
 
     #[test]
@@ -144,7 +143,7 @@ mod tests {
 
     #[test]
     fn container_id_feature_pack() {
-        let source = Source::parse("cloud:9.0.0.Final").unwrap();
-        assert_eq!(source.container_id(), "cloud");
+        let source = Source::parse("ai").unwrap();
+        assert_eq!(source.container_id(), "ai");
     }
 }

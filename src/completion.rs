@@ -44,10 +44,7 @@ fn find_suggestions(parameter: Option<&str>) -> (String, String, Vec<String>) {
 }
 
 fn feature_pack_completions() -> Vec<String> {
-    known_shortcuts()
-        .iter()
-        .map(|s| format!("{}:", s))
-        .collect()
+    known_shortcuts().iter().map(|s| s.to_string()).collect()
 }
 
 fn parse_prefix_token(parameter: Option<&str>) -> (&str, &str) {
