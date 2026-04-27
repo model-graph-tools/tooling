@@ -40,10 +40,25 @@ pub fn build_app() -> Command {
                 .action(ArgAction::SetTrue)
                 .help("Stop all running Neo4J model DB containers")))
 
+        // ps
+        .subcommand(Command::new("ps")
+            .about("List running Neo4J model DB containers"))
+
         // browse
         .subcommand(Command::new("browse")
             .about("Open the Neo4J browser for a running Neo4J model DB")
             .arg(Arg::new("identifier")
                 .required(true)
                 .help("A WildFly version (e.g. 39, 26.1)")))
+
+        // completions
+        .subcommand(Command::new("completions")
+            .about("Generate and install shell completions")
+            .arg(Arg::new("shell")
+                .help("The shell to generate completions for [default: auto-detected]"))
+            .arg(Arg::new("install")
+                .short('i')
+                .long("install")
+                .action(ArgAction::SetTrue)
+                .help("Install completions to the standard location for the shell")))
 }
