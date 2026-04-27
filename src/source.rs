@@ -44,14 +44,14 @@ impl Source {
     pub fn port_offset(&self) -> u16 {
         match self {
             Source::WildFly(wc) => wc.identifier,
-            Source::FeaturePack(fp) => fp.id,
+            Source::FeaturePack(fp) => fp.port_offset(),
         }
     }
 
     pub fn container_id(&self) -> String {
         match self {
             Source::WildFly(wc) => wc.identifier.to_string(),
-            Source::FeaturePack(fp) => fp.shortcut.to_string(),
+            Source::FeaturePack(fp) => fp.container_id(),
         }
     }
 }
@@ -125,14 +125,14 @@ mod tests {
     #[test]
     fn port_offset_feature_pack() {
         let source = Source::parse("ai").unwrap();
-        assert_eq!(source.port_offset(), 1);
+        assert_eq!(source.port_offset(), 1000);
     }
 
     #[test]
     fn port_offsets_no_overlap() {
-        let fp_max = 99u16;
-        let wf_min = 100u16; // WildFly 10.0 = major*10+minor = 100
-        assert!(fp_max < wf_min, "Feature pack and WildFly port ranges overlap");
+        let wf_max = 990u16; // WildFly 99.0 = 99*10+0 = 990
+        let fp_min = 1000u16;
+        assert!(wf_max < fp_min, "WildFly and feature pack port ranges overlap");
     }
 
     #[test]
@@ -144,6 +144,6 @@ mod tests {
     #[test]
     fn container_id_feature_pack() {
         let source = Source::parse("ai").unwrap();
-        assert_eq!(source.container_id(), "ai");
+        assert_eq!(source.container_id(), "ai-0.9.0");
     }
 }

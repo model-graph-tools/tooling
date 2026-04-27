@@ -5,9 +5,20 @@ pub struct FeaturePack {
     pub shortcut: &'static str,
     pub group_id: &'static str,
     pub artifact_id: &'static str,
-    pub id: u16,
+    pub shortcut_index: u16,
+    pub version_index: u16,
     pub version: &'static str,
     pub maven_version: &'static str,
+}
+
+impl FeaturePack {
+    pub fn port_offset(&self) -> u16 {
+        1000 + (self.shortcut_index * 100) + self.version_index
+    }
+
+    pub fn container_id(&self) -> String {
+        format!("{}-{}", self.shortcut, self.version)
+    }
 }
 
 static FEATURE_PACKS: &[FeaturePack] = &[
@@ -15,7 +26,8 @@ static FEATURE_PACKS: &[FeaturePack] = &[
         shortcut: "ai",
         group_id: "org.wildfly.generative-ai",
         artifact_id: "wildfly-ai-feature-pack",
-        id: 1,
+        shortcut_index: 0,
+        version_index: 0,
         version: "0.9.0",
         maven_version: "0.9.0",
     },
@@ -23,7 +35,8 @@ static FEATURE_PACKS: &[FeaturePack] = &[
         shortcut: "graphql",
         group_id: "org.wildfly.extras.graphql",
         artifact_id: "wildfly-microprofile-graphql-feature-pack",
-        id: 2,
+        shortcut_index: 1,
+        version_index: 0,
         version: "2.7.0",
         maven_version: "2.7.0.Final",
     },
@@ -31,7 +44,8 @@ static FEATURE_PACKS: &[FeaturePack] = &[
         shortcut: "grpc",
         group_id: "org.wildfly.extras.grpc",
         artifact_id: "wildfly-grpc-feature-pack",
-        id: 3,
+        shortcut_index: 2,
+        version_index: 0,
         version: "0.1.16",
         maven_version: "0.1.16.Final",
     },
@@ -39,7 +53,8 @@ static FEATURE_PACKS: &[FeaturePack] = &[
         shortcut: "keycloak",
         group_id: "org.keycloak",
         artifact_id: "keycloak-saml-adapter-galleon-pack",
-        id: 4,
+        shortcut_index: 3,
+        version_index: 0,
         version: "26.6.1",
         maven_version: "26.6.1",
     },
@@ -47,7 +62,8 @@ static FEATURE_PACKS: &[FeaturePack] = &[
         shortcut: "myfaces",
         group_id: "org.wildfly",
         artifact_id: "wildfly-myfaces-feature-pack",
-        id: 5,
+        shortcut_index: 4,
+        version_index: 0,
         version: "2.0.3",
         maven_version: "2.0.3.Final",
     },
@@ -65,8 +81,8 @@ impl FeaturePack {
         Ok(fp.clone())
     }
 
-    pub fn from_shortcut(shortcut: &str) -> Option<&'static FeaturePack> {
-        FEATURE_PACKS.iter().find(|fp| fp.shortcut == shortcut)
+    pub fn from_container_id(container_id: &str) -> Option<&'static FeaturePack> {
+        FEATURE_PACKS.iter().find(|fp| fp.container_id() == container_id)
     }
 
     pub fn download_url(&self) -> String {
@@ -93,15 +109,16 @@ mod tests {
     #[test]
     fn parse_all_shortcuts() {
         let inputs = [
-            ("ai", 1, "0.9.0"),
-            ("graphql", 2, "2.7.0"),
-            ("grpc", 3, "0.1.16"),
-            ("keycloak", 4, "26.6.1"),
-            ("myfaces", 5, "2.0.3"),
+            ("ai", 0, 0, "0.9.0"),
+            ("graphql", 1, 0, "2.7.0"),
+            ("grpc", 2, 0, "0.1.16"),
+            ("keycloak", 3, 0, "26.6.1"),
+            ("myfaces", 4, 0, "2.0.3"),
         ];
-        for (input, expected_id, expected_version) in inputs {
+        for (input, expected_si, expected_vi, expected_version) in inputs {
             let fp = FeaturePack::parse(input).unwrap();
-            assert_eq!(fp.id, expected_id, "Wrong ID for {}", input);
+            assert_eq!(fp.shortcut_index, expected_si, "Wrong shortcut_index for {}", input);
+            assert_eq!(fp.version_index, expected_vi, "Wrong version_index for {}", input);
             assert_eq!(fp.version, expected_version, "Wrong version for {}", input);
         }
     }
@@ -146,35 +163,57 @@ mod tests {
     }
 
     #[test]
-    fn unique_ids() {
-        let ids: Vec<u16> = FEATURE_PACKS.iter().map(|fp| fp.id).collect();
-        let mut deduped = ids.clone();
-        deduped.sort();
-        deduped.dedup();
-        assert_eq!(ids.len(), deduped.len(), "Feature pack IDs must be unique");
+    fn port_offset() {
+        let fp = FeaturePack::parse("ai").unwrap();
+        assert_eq!(fp.port_offset(), 1000);
+        let fp = FeaturePack::parse("graphql").unwrap();
+        assert_eq!(fp.port_offset(), 1100);
+        let fp = FeaturePack::parse("grpc").unwrap();
+        assert_eq!(fp.port_offset(), 1200);
+        let fp = FeaturePack::parse("keycloak").unwrap();
+        assert_eq!(fp.port_offset(), 1300);
+        let fp = FeaturePack::parse("myfaces").unwrap();
+        assert_eq!(fp.port_offset(), 1400);
     }
 
     #[test]
-    fn ids_in_valid_range() {
+    fn container_id() {
+        let fp = FeaturePack::parse("ai").unwrap();
+        assert_eq!(fp.container_id(), "ai-0.9.0");
+        let fp = FeaturePack::parse("graphql").unwrap();
+        assert_eq!(fp.container_id(), "graphql-2.7.0");
+    }
+
+    #[test]
+    fn unique_port_offsets() {
+        let offsets: Vec<u16> = FEATURE_PACKS.iter().map(|fp| fp.port_offset()).collect();
+        let mut deduped = offsets.clone();
+        deduped.sort();
+        deduped.dedup();
+        assert_eq!(offsets.len(), deduped.len(), "Feature pack port offsets must be unique");
+    }
+
+    #[test]
+    fn port_offsets_start_at_1000() {
         for fp in FEATURE_PACKS {
             assert!(
-                fp.id >= 1 && fp.id < 100,
-                "Feature pack '{}' has ID {} outside range 1-99",
+                fp.port_offset() >= 1000,
+                "Feature pack '{}' has port offset {} below 1000",
                 fp.shortcut,
-                fp.id
+                fp.port_offset()
             );
         }
     }
 
     #[test]
-    fn from_shortcut_found() {
-        let fp = FeaturePack::from_shortcut("ai");
+    fn from_container_id_found() {
+        let fp = FeaturePack::from_container_id("ai-0.9.0");
         assert!(fp.is_some());
-        assert_eq!(fp.unwrap().id, 1);
+        assert_eq!(fp.unwrap().shortcut_index, 0);
     }
 
     #[test]
-    fn from_shortcut_not_found() {
-        assert!(FeaturePack::from_shortcut("unknown").is_none());
+    fn from_container_id_not_found() {
+        assert!(FeaturePack::from_container_id("unknown-1.0.0").is_none());
     }
 }
