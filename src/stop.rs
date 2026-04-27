@@ -13,8 +13,12 @@ pub async fn stop(
 ) -> anyhow::Result<()> {
     verify_container_command()?;
 
-    let container_names = if all {
-        running_neo4j_containers().await?
+    let container_names: Vec<String> = if all {
+        running_neo4j_containers()
+            .await?
+            .iter()
+            .map(|r| r.container.container_name())
+            .collect()
     } else {
         wildfly_containers
             .expect("Argument <identifier> expected!")

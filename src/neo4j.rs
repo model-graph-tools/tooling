@@ -122,6 +122,14 @@ impl Neo4JContainer {
     }
 }
 
+// ------------------------------------------------------ running container
+
+pub struct RunningNeo4JContainer {
+    pub container: Neo4JContainer,
+    pub id: String,
+    pub status: String,
+}
+
 // ------------------------------------------------------ helper
 
 async fn copy_from_container(

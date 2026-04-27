@@ -1,3 +1,4 @@
+use crate::neo4j::{Neo4JContainer, Neo4JImage, RunningNeo4JContainer};
 use crate::progress::Progress;
 use anyhow::{Error, bail};
 use std::path::PathBuf;
@@ -123,21 +124,22 @@ pub async fn remove_container(name: &str) -> anyhow::Result<()> {
 
 const MGT_NEO4J_PREFIX: &str = "mgt-neo4j-";
 
-pub struct ContainerInfo {
-    pub id: String,
-    pub name: String,
-    pub version: String,
-    pub status: String,
-    pub ports: String,
+fn parse_identifier(name: &str) -> Option<WildFlyContainer> {
+    let id_str = name.strip_prefix(MGT_NEO4J_PREFIX)?;
+    let id: u16 = id_str.parse().ok()?;
+    let major = id / 10;
+    let minor = id % 10;
+    let version_str = format!("{}.{}", major, minor);
+    WildFlyContainer::version(&version_str).ok()
 }
 
-pub async fn neo4j_container_details() -> anyhow::Result<Vec<ContainerInfo>> {
+pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContainer>> {
     let mut cmd = container_command()?;
     cmd.arg("ps")
         .arg("--filter")
         .arg(format!("name={}", MGT_NEO4J_PREFIX))
         .arg("--format")
-        .arg("{{.ID}}|{{.Names}}|{{.Status}}|{{.Ports}}")
+        .arg("{{.ID}}|{{.Names}}|{{.Status}}")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     let output = cmd.output().await?;
@@ -147,52 +149,33 @@ pub async fn neo4j_container_details() -> anyhow::Result<Vec<ContainerInfo>> {
             String::from_utf8_lossy(&output.stderr)
         );
     }
-    let mut containers: Vec<ContainerInfo> = String::from_utf8_lossy(&output.stdout)
+    let mut containers: Vec<RunningNeo4JContainer> = String::from_utf8_lossy(&output.stdout)
         .lines()
         .filter(|l| !l.is_empty())
         .filter_map(|line| {
-            let parts: Vec<&str> = line.splitn(4, '|').collect();
-            if parts.len() == 4 {
-                let name = parts[1].to_string();
-                let version = name.strip_prefix(MGT_NEO4J_PREFIX).unwrap_or(&name).to_string();
-                Some(ContainerInfo {
+            let parts: Vec<&str> = line.splitn(3, '|').collect();
+            if parts.len() == 3 {
+                let wc = parse_identifier(parts[1])?;
+                let image = Neo4JImage::new(&wc);
+                let container = Neo4JContainer::new(image);
+                Some(RunningNeo4JContainer {
+                    container,
                     id: parts[0].to_string(),
-                    name,
-                    version,
                     status: parts[2].to_string(),
-                    ports: parts[3].to_string(),
                 })
             } else {
                 None
             }
         })
         .collect();
-    containers.sort_by(|a, b| a.version.cmp(&b.version));
+    containers.sort_by(|a, b| {
+        a.container
+            .image
+            .wildfly_container
+            .identifier
+            .cmp(&b.container.image.wildfly_container.identifier)
+    });
     Ok(containers)
-}
-
-pub async fn running_neo4j_containers() -> anyhow::Result<Vec<String>> {
-    let mut cmd = container_command()?;
-    cmd.arg("ps")
-        .arg("--filter")
-        .arg(format!("name={}", MGT_NEO4J_PREFIX))
-        .arg("--format")
-        .arg("{{.Names}}")
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let output = cmd.output().await?;
-    if !output.status.success() {
-        bail!(
-            "Failed to list containers: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    let names = String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .filter(|l| !l.is_empty())
-        .map(|l| l.to_string())
-        .collect();
-    Ok(names)
 }
 
 const MAX_HEALTHCHECK_ATTEMPTS: u32 = 30;
