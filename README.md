@@ -108,7 +108,7 @@ Analyzes the management model of a WildFly instance or feature pack and builds a
 1. Starts a WildFly standalone instance from [quay.io/wado/wado-sa](https://quay.io/repository/wado/wado-sa) using the `standalone-full-ha.xml` configuration.
 2. Starts an empty Neo4J database from [docker.io/neo4j](https://hub.docker.com/_/neo4j).
 3. Downloads and runs the [analyzer](https://github.com/model-graph-tools/analyzer).
-4. Builds a self-contained Neo4J image published to [quay.io/modelgraphtools/wildfly-management-model](https://quay.io/repository/modelgraphtools/wildfly-management-model).
+4. Builds a self-contained Neo4J image published to [quay.io/modelgraphtools/model](https://quay.io/repository/modelgraphtools/model).
 5. Shuts down instances and cleans up resources.
 
 ```shell
