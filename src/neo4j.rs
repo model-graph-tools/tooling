@@ -1,6 +1,8 @@
 //! Neo4J container, image, and port management.
 
-use crate::constants::{NEO4J_IMAGE, NEO4J_VERSION, PLATFORMS, neo4j_model_db_dockerfile};
+use crate::constants::{
+    MODEL_GRAPH_TOOLS_REPOSITORY, NEO4J_IMAGE, NEO4J_VERSION, PLATFORMS, neo4j_model_db_dockerfile,
+};
 use crate::container::{container_command, run_container_cmd};
 use crate::progress::Progress;
 use crate::source::Source;
@@ -51,15 +53,12 @@ impl Neo4JImage {
     pub fn image_tag(&self) -> String {
         match &self.source {
             Source::WildFly(wc) => {
-                format!(
-                    "quay.io/modelgraphtools/wildfly-management-model:{}",
-                    wc.version
-                )
+                format!("{}:{}", MODEL_GRAPH_TOOLS_REPOSITORY, wc.version)
             }
             Source::FeaturePack(fp) => {
                 format!(
-                    "quay.io/modelgraphtools/wildfly-management-model:{}-{}",
-                    fp.shortcut, fp.version
+                    "{}{}-{}",
+                    MODEL_GRAPH_TOOLS_REPOSITORY, fp.shortcut, fp.version
                 )
             }
         }

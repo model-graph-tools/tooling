@@ -107,15 +107,15 @@ pub async fn remove_container(name: &str) -> anyhow::Result<()> {
 
 /// Lists running Neo4J containers filtered by the `mgt` identifier label, sorted by port offset.
 pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContainer>> {
-    let label = Label::Identifier;
+    let source_name_label = Label::SourceName;
     let mut cmd = container_command()?;
     cmd.arg("ps")
         .arg("--filter")
-        .arg(label.filter())
+        .arg(Label::Identifier.filter())
         .arg("--format")
         .arg(format!(
             "{{{{.ID}}}}|{{{{.Names}}}}|{{{{.Status}}}}|{}",
-            label.format_expr()
+            source_name_label.format_expr()
         ))
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -132,8 +132,8 @@ pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContai
         .filter_map(|line| {
             let parts: Vec<&str> = line.splitn(4, '|').collect();
             if parts.len() == 4 {
-                let identifier = label.parse_value(parts[3])?;
-                let source = Source::parse(&identifier).ok()?;
+                let name = source_name_label.parse_value(parts[3])?;
+                let source = Source::parse(&name).ok()?;
                 let image = Neo4JImage::new(&source);
                 let container = Neo4JContainer::new(image);
                 Some(RunningNeo4JContainer {

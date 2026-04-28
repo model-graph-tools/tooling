@@ -53,6 +53,10 @@ pub(super) async fn start_neo4j(
         .arg(format!("{}:/data", neo4j.volume_name()))
         .arg("--label")
         .arg(Label::Identifier.run_arg(&neo4j.image.source.container_id()))
+        .arg("--label")
+        .arg(Label::SourceType.run_arg(neo4j.image.source.source_type()))
+        .arg("--label")
+        .arg(Label::SourceName.run_arg(&neo4j.image.source.source_name()))
         .arg(Neo4JImage::base_image_name())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());

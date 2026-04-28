@@ -4,6 +4,8 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Label {
     Identifier,
+    SourceType,
+    SourceName,
 }
 
 impl Label {
@@ -11,6 +13,8 @@ impl Label {
     pub fn key(&self) -> &'static str {
         match self {
             Label::Identifier => "org.wildfly.mgt.identifier",
+            Label::SourceType => "org.wildfly.mgt.source-type",
+            Label::SourceName => "org.wildfly.mgt.source-name",
         }
     }
 
@@ -47,6 +51,8 @@ mod tests {
     #[test]
     fn key_returns_oci_label_key() {
         assert_eq!(Label::Identifier.key(), "org.wildfly.mgt.identifier");
+        assert_eq!(Label::SourceType.key(), "org.wildfly.mgt.source-type");
+        assert_eq!(Label::SourceName.key(), "org.wildfly.mgt.source-name");
     }
 
     #[test]

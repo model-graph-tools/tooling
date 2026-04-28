@@ -57,7 +57,7 @@ pub async fn start(sources: &[Source]) -> anyhow::Result<()> {
 
 /// Starts a single Neo4J container from a pre-built image and waits for it to become healthy.
 async fn start_neo4j(neo4j: &Neo4JContainer, progress: &Progress) -> anyhow::Result<()> {
-    pull_image(&neo4j.image.image_tag(), progress).await?;
+    let _ = pull_image(&neo4j.image.image_tag(), progress).await;
 
     progress.show_progress("starting container...");
     let mut cmd = container_command()?;
@@ -74,6 +74,10 @@ async fn start_neo4j(neo4j: &Neo4JContainer, progress: &Progress) -> anyhow::Res
         .arg("NEO4J_AUTH=none")
         .arg("--label")
         .arg(Label::Identifier.run_arg(&neo4j.image.source.container_id()))
+        .arg("--label")
+        .arg(Label::SourceType.run_arg(neo4j.image.source.source_type()))
+        .arg("--label")
+        .arg(Label::SourceName.run_arg(&neo4j.image.source.source_name()))
         .arg(neo4j.image.image_tag())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());

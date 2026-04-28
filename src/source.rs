@@ -62,6 +62,22 @@ impl Source {
             Source::FeaturePack(fp) => fp.container_id(),
         }
     }
+
+    /// Returns the source type label value (`"wildfly"` or `"feature-pack"`).
+    pub fn source_type(&self) -> &'static str {
+        match self {
+            Source::WildFly(_) => "wildfly",
+            Source::FeaturePack(_) => "feature-pack",
+        }
+    }
+
+    /// Returns a parseable source name (e.g. `"34.0"` or `"ai:0.9.0"`).
+    pub fn source_name(&self) -> String {
+        match self {
+            Source::WildFly(wc) => wc.display_version(),
+            Source::FeaturePack(fp) => format!("{}:{}", fp.shortcut, fp.version),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -163,5 +179,38 @@ mod tests {
     fn container_id_feature_pack() {
         let source = Source::parse("ai").unwrap();
         assert_eq!(source.container_id(), "ai-0.9.0");
+    }
+
+    #[test]
+    fn source_type_wildfly() {
+        let source = Source::parse("34").unwrap();
+        assert_eq!(source.source_type(), "wildfly");
+    }
+
+    #[test]
+    fn source_type_feature_pack() {
+        let source = Source::parse("ai").unwrap();
+        assert_eq!(source.source_type(), "feature-pack");
+    }
+
+    #[test]
+    fn source_name_wildfly() {
+        let source = Source::parse("34").unwrap();
+        assert_eq!(source.source_name(), "34.0");
+    }
+
+    #[test]
+    fn source_name_feature_pack() {
+        let source = Source::parse("ai").unwrap();
+        assert_eq!(source.source_name(), "ai:0.9.0");
+    }
+
+    #[test]
+    fn source_name_roundtrips() {
+        for input in &["34", "26.1", "ai", "grpc"] {
+            let source = Source::parse(input).unwrap();
+            let reparsed = Source::parse(&source.source_name()).unwrap();
+            assert_eq!(source, reparsed);
+        }
     }
 }
