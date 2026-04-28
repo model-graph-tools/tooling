@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-04-28
+
 ### Added
 - Add `push` subcommand to push Neo4J model DB images to quay.io with parallel execution, progress tracking, and optional `--chunks` flag for batched pushes
 - Add `source-type` and `source-name` container labels for reliable container listing
@@ -28,5 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release 🎉
 
-[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/model-graph-tools/tooling/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/model-graph-tools/tooling/releases/tag/v0.0.1
