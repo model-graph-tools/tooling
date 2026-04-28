@@ -196,8 +196,8 @@ pub async fn pull_image(image: &str, progress: &Progress) -> anyhow::Result<()> 
     Ok(())
 }
 
-/// Maximum number of healthcheck polling attempts before giving up.
-const MAX_HEALTHCHECK_ATTEMPTS: u32 = 30;
+/// Maximum number of health check polling attempts before giving up.
+const MAX_HEALTHCHECK_ATTEMPTS: u32 = 60;
 
 /// Polls a URL until it returns HTTP 200, retrying once per second.
 pub async fn healthcheck(url: &str, progress: &Progress) -> anyhow::Result<()> {
