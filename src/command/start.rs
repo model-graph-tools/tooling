@@ -59,7 +59,7 @@ pub async fn start(sources: &[Source]) -> anyhow::Result<()> {
 async fn start_neo4j(neo4j: &Neo4JContainer, progress: &Progress) -> anyhow::Result<()> {
     let _ = pull_image(&neo4j.image.image_tag(), progress).await;
 
-    progress.show_progress("starting container...");
+    progress.show_progress("Starting container...");
     let mut cmd = container_command()?;
     cmd.arg("run")
         .arg("--rm")
@@ -72,6 +72,11 @@ async fn start_neo4j(neo4j: &Neo4JContainer, progress: &Progress) -> anyhow::Res
         .arg(format!("{}:7687", neo4j.ports.bolt))
         .arg("--env")
         .arg("NEO4J_AUTH=none")
+        .arg("--env")
+        .arg(format!(
+            "NEO4J_browser_post__connect__cmd=play http://localhost:{}/welcome.html",
+            neo4j.ports.http
+        ))
         .arg("--label")
         .arg(Label::Identifier.run_arg(&neo4j.image.source.container_id()))
         .arg("--label")
@@ -89,7 +94,7 @@ async fn start_neo4j(neo4j: &Neo4JContainer, progress: &Progress) -> anyhow::Res
         );
     }
 
-    progress.show_progress("waiting for Neo4J...");
+    progress.show_progress("Waiting for Neo4J...");
     healthcheck(
         &format!("http://localhost:{}/browser", neo4j.ports.http),
         progress,

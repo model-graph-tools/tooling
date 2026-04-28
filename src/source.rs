@@ -63,6 +63,22 @@ impl Source {
         }
     }
 
+    /// Returns a human-readable label for the welcome page (e.g. `"WildFly 34.0"` or `"AI Feature Pack 0.9.0"`).
+    pub fn welcome_label(&self) -> String {
+        match self {
+            Source::WildFly(wc) => format!("WildFly {}", wc.display_version()),
+            Source::FeaturePack(fp) => {
+                let capitalized: String = fp
+                    .shortcut
+                    .chars()
+                    .enumerate()
+                    .map(|(i, c)| if i == 0 { c.to_ascii_uppercase() } else { c })
+                    .collect();
+                format!("{} Feature Pack {}", capitalized, fp.version)
+            }
+        }
+    }
+
     /// Returns the source type label value (`"wildfly"` or `"feature-pack"`).
     pub fn source_type(&self) -> &'static str {
         match self {

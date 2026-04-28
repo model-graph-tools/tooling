@@ -267,7 +267,10 @@ mod tests {
         assert_eq!(FeaturePack::parse("ai").unwrap().port_offset(), 10_000);
         assert_eq!(FeaturePack::parse("graphql").unwrap().port_offset(), 10_100);
         assert_eq!(FeaturePack::parse("grpc").unwrap().port_offset(), 10_200);
-        assert_eq!(FeaturePack::parse("keycloak").unwrap().port_offset(), 10_300);
+        assert_eq!(
+            FeaturePack::parse("keycloak").unwrap().port_offset(),
+            10_300
+        );
         assert_eq!(FeaturePack::parse("myfaces").unwrap().port_offset(), 10_400);
     }
 

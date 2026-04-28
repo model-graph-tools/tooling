@@ -15,7 +15,7 @@ pub(super) async fn build_neo4j_image(neo4j: &Neo4JContainer) -> anyhow::Result<
     step_header(3, TOTAL_STEPS, "Building Neo4J image...");
     let progress = Progress::new(&neo4j.image.image_tag());
 
-    progress.show_progress("stopping neo4j...");
+    progress.show_progress("Stopping neo4j...");
     stop_container(&neo4j.container_name()).await?;
 
     neo4j

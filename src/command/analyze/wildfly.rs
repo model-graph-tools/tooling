@@ -264,7 +264,7 @@ async fn start_wildfly(
     network: &str,
     progress: &Progress,
 ) -> anyhow::Result<()> {
-    progress.show_progress("starting container...");
+    progress.show_progress("Starting container...");
     let mut command = container_command()?;
     command
         .arg("run")
@@ -290,7 +290,7 @@ async fn start_wildfly(
         );
     }
 
-    progress.show_progress("waiting for WildFly...");
+    progress.show_progress("Waiting for WildFly...");
     healthcheck(
         &format!("http://localhost:{}", instance.ports.management),
         progress,

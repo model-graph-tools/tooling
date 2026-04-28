@@ -87,7 +87,7 @@ async fn push_batch(sources: &[Source]) -> anyhow::Result<Vec<CommandStatus>> {
 
 /// Pushes a single multi-arch manifest image to the registry.
 async fn push_image(image_tag: &str, progress: &Progress) -> anyhow::Result<()> {
-    progress.show_progress("pushing...");
+    progress.show_progress("Pushing...");
     let mut cmd = container_command()?;
     cmd.arg("manifest")
         .arg("push")

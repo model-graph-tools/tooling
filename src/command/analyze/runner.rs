@@ -46,7 +46,7 @@ pub(super) async fn run_analyzer(
     mode: &str,
     progress: &Progress,
 ) -> anyhow::Result<()> {
-    progress.show_progress("starting analyzer...");
+    progress.show_progress("Starting analyzer...");
 
     let suffix = if mode == "--clean" { "fha" } else { "mp" };
     let analyzer_container_name = format!(
@@ -112,7 +112,7 @@ pub(super) async fn run_doc_zip_analyzer(
     network: &str,
     progress: &Progress,
 ) -> anyhow::Result<()> {
-    progress.show_progress("starting analyzer...");
+    progress.show_progress("Starting analyzer...");
 
     let analyzer_jar = temp_dir().join("analyzer.jar");
     if !analyzer_jar.exists() {

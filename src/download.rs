@@ -20,7 +20,7 @@ pub async fn download_file(
         return Ok(path);
     }
 
-    progress.show_progress("downloading...");
+    progress.show_progress(&format!("Downloading {filename}..."));
     let response = reqwest::get(url).await?;
     if response.status().is_success() {
         let mut file = File::create(&path)?;

@@ -17,7 +17,7 @@ pub(super) async fn start_neo4j(
 ) -> anyhow::Result<()> {
     pull_image(&Neo4JImage::base_image_name(), progress).await?;
 
-    progress.show_progress("creating volume...");
+    progress.show_progress("Creating volume...");
     let mut volume_cmd = container_command()?;
     volume_cmd
         .arg("volume")
@@ -34,7 +34,7 @@ pub(super) async fn start_neo4j(
         );
     }
 
-    progress.show_progress("starting container...");
+    progress.show_progress("Starting container...");
     let mut run_cmd = container_command()?;
     run_cmd
         .arg("run")
@@ -68,7 +68,7 @@ pub(super) async fn start_neo4j(
         );
     }
 
-    progress.show_progress("waiting for Neo4J...");
+    progress.show_progress("Waiting for Neo4J...");
     healthcheck(
         &format!("http://localhost:{}/browser", neo4j.ports.http),
         progress,

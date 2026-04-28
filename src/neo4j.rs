@@ -1,7 +1,7 @@
 //! Neo4J container, image, and port management.
 
 use crate::constants::{
-    MODEL_GRAPH_TOOLS_REPOSITORY, NEO4J_IMAGE, NEO4J_VERSION, PLATFORMS, neo4j_model_db_dockerfile,
+    MODEL_GRAPH_TOOLS_REPOSITORY, NEO4J_IMAGE, NEO4J_VERSION, PLATFORMS, model_db_dockerfile,
 };
 use crate::container::{container_command, run_container_cmd};
 use crate::progress::Progress;
@@ -57,7 +57,7 @@ impl Neo4JImage {
             }
             Source::FeaturePack(fp) => {
                 format!(
-                    "{}{}-{}",
+                    "{}:{}-{}",
                     MODEL_GRAPH_TOOLS_REPOSITORY, fp.shortcut, fp.version
                 )
             }
@@ -73,16 +73,19 @@ impl Neo4JImage {
         let build_dir = tempfile::tempdir()?;
         let build_path = build_dir.path();
 
-        progress.show_progress("copying database files...");
+        progress.show_progress("Copying database files...");
         copy_from_container(container_name, "/data/databases", build_path).await?;
         copy_from_container(container_name, "/data/transactions", build_path).await?;
 
-        std::fs::write(build_path.join("Dockerfile"), neo4j_model_db_dockerfile())?;
+        std::fs::write(
+            build_path.join("Dockerfile"),
+            model_db_dockerfile(&self.source.welcome_label()),
+        )?;
 
         let image_tag = self.image_tag();
 
         // Remove any existing manifest (ignore errors if it doesn't exist)
-        progress.show_progress("creating manifest...");
+        progress.show_progress("Creating manifest...");
         let mut rm_cmd = container_command()?;
         rm_cmd
             .arg("manifest")
@@ -98,7 +101,7 @@ impl Neo4JImage {
         )
         .await?;
 
-        progress.show_progress("building multi-arch image...");
+        progress.show_progress("Building image...");
         let build_path_str = build_path.to_string_lossy();
         run_container_cmd(
             &[
@@ -109,7 +112,7 @@ impl Neo4JImage {
                 &image_tag,
                 &build_path_str,
             ],
-            "Multi-arch image build failed",
+            "Image build failed",
         )
         .await
     }

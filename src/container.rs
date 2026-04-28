@@ -179,7 +179,7 @@ pub async fn local_image_names() -> anyhow::Result<HashSet<String>> {
 
 /// Pulls a container image, showing progress on the provided spinner.
 pub async fn pull_image(image: &str, progress: &Progress) -> anyhow::Result<()> {
-    progress.show_progress(&format!("pulling {}...", image));
+    progress.show_progress(&format!("Pulling {}...", image));
     let mut cmd = container_command()?;
     cmd.arg("pull")
         .arg(image)
@@ -204,7 +204,7 @@ pub async fn healthcheck(url: &str, progress: &Progress) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     for attempt in 1..=MAX_HEALTHCHECK_ATTEMPTS {
         progress.show_progress(&format!(
-            "healthcheck {}/{}",
+            "Healthcheck {}/{}",
             attempt, MAX_HEALTHCHECK_ATTEMPTS
         ));
         if let Ok(response) = client.get(url).send().await
