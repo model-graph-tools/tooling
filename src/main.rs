@@ -23,7 +23,7 @@ use anyhow::Result;
 use app::build_app;
 use clap_complete::engine::ArgValueCompleter;
 
-/// Builds the full CLI command tree with value parsers and tab-completion wired up.
+/// Extends [`build_app()`] with value parsers and tab-completion handlers.
 fn build_app_full() -> clap::Command {
     build_app()
         .mut_subcommand("analyze", |sub_cmd| {

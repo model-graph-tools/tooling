@@ -1,10 +1,17 @@
-//! Clap command tree definition, shared between `main.rs` and `build.rs`.
+//! Base clap command tree with subcommands and arguments.
+//!
+//! Defines the CLI structure (subcommands, flags, help text) without value
+//! parsers or completion logic. [`main.rs`](crate) extends this via
+//! `build_app_full()` to wire up parsers and tab-completion.
 
 use clap::builder::Styles;
 use clap::builder::styling::{AnsiColor, Effects};
 use clap::{Arg, ArgAction, Command, crate_name, crate_version};
 
-/// Builds the base clap `Command` tree with all subcommands and arguments.
+/// Builds the base clap `Command` tree with subcommands and arguments.
+///
+/// Does not attach value parsers or completion handlers — see
+/// `build_app_full()` in `main.rs` for the fully wired version.
 pub fn build_app() -> Command {
     Command::new(crate_name!())
         .version(crate_version!())
