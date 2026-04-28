@@ -12,4 +12,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First release 🎉
 
 [Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.0.1...HEAD
-[0.0.1]: https://github.com/model-graph-tools/tooling/compare/v0.0.0...v0.0.1
+[0.0.1]: https://github.com/model-graph-tools/tooling/releases/tag/v0.0.1
