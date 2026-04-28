@@ -119,13 +119,6 @@ impl FeaturePack {
         }
     }
 
-    pub fn from_container_id(container_id: &str) -> Option<FeaturePack> {
-        FEATURE_PACKS
-            .values()
-            .find(|fp| fp.container_id() == container_id)
-            .cloned()
-    }
-
     pub fn download_url(&self) -> String {
         let group_path = self.group_id.replace('.', "/");
         format!(
@@ -282,18 +275,6 @@ mod tests {
                 fp.port_offset()
             );
         }
-    }
-
-    #[test]
-    fn from_container_id_found() {
-        let fp = FeaturePack::from_container_id("ai-0.9.0");
-        assert!(fp.is_some());
-        assert_eq!(fp.unwrap().shortcut_index, 0);
-    }
-
-    #[test]
-    fn from_container_id_not_found() {
-        assert!(FeaturePack::from_container_id("unknown-1.0.0").is_none());
     }
 
     #[test]

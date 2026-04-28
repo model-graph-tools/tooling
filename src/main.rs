@@ -7,6 +7,7 @@ mod completions;
 mod constants;
 mod container;
 mod feature_pack;
+mod label;
 mod neo4j;
 mod progress;
 mod ps;

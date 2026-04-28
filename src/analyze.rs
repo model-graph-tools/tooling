@@ -3,6 +3,7 @@ use crate::container::{
     container_command, create_network, healthcheck, network_name, remove_container, remove_network,
     remove_volume, stop_container,
 };
+use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, step_header, summary};
 use crate::source::Source;
@@ -636,6 +637,8 @@ async fn start_neo4j(
         .arg("NEO4J_AUTH=none")
         .arg("--volume")
         .arg(format!("{}:/data", neo4j.volume_name()))
+        .arg("--label")
+        .arg(Label::Identifier.run_arg(&neo4j.image.source.container_id()))
         .arg(Neo4JImage::base_image_name())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());

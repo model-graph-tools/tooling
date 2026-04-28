@@ -1,4 +1,4 @@
-use crate::feature_pack::FeaturePack;
+use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage, RunningNeo4JContainer};
 use crate::progress::Progress;
 use crate::source::Source;
@@ -9,7 +9,6 @@ use std::time::Duration;
 use tokio::process::Command;
 use tokio::time::sleep;
 use which::which;
-use wildfly_container_versions::WildFlyContainer;
 
 pub fn verify_container_command() -> Result<PathBuf, Error> {
     which("podman")
@@ -124,30 +123,17 @@ pub async fn remove_container(name: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-const MGT_NEO4J_PREFIX: &str = "mgt-neo4j-";
-
-fn parse_source_from_container_name(name: &str) -> Option<Source> {
-    let id_str = name.strip_prefix(MGT_NEO4J_PREFIX)?;
-
-    if let Ok(id) = id_str.parse::<u16>() {
-        let major = id / 10;
-        let minor = id % 10;
-        let version_str = format!("{}.{}", major, minor);
-        WildFlyContainer::version(&version_str)
-            .ok()
-            .map(Source::WildFly)
-    } else {
-        FeaturePack::from_container_id(id_str).map(Source::FeaturePack)
-    }
-}
-
 pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContainer>> {
+    let label = Label::Identifier;
     let mut cmd = container_command()?;
     cmd.arg("ps")
         .arg("--filter")
-        .arg(format!("name={}", MGT_NEO4J_PREFIX))
+        .arg(label.filter())
         .arg("--format")
-        .arg("{{.ID}}|{{.Names}}|{{.Status}}")
+        .arg(format!(
+            "{{{{.ID}}}}|{{{{.Names}}}}|{{{{.Status}}}}|{}",
+            label.format_expr()
+        ))
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     let output = cmd.output().await?;
@@ -161,9 +147,10 @@ pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContai
         .lines()
         .filter(|l| !l.is_empty())
         .filter_map(|line| {
-            let parts: Vec<&str> = line.splitn(3, '|').collect();
-            if parts.len() == 3 {
-                let source = parse_source_from_container_name(parts[1])?;
+            let parts: Vec<&str> = line.splitn(4, '|').collect();
+            if parts.len() == 4 {
+                let identifier = label.parse_value(parts[3])?;
+                let source = Source::parse(&identifier).ok()?;
                 let image = Neo4JImage::new(&source);
                 let container = Neo4JContainer::new(image);
                 Some(RunningNeo4JContainer {

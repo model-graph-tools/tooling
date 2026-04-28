@@ -1,4 +1,5 @@
 use crate::container::{container_command, healthcheck, verify_container_command};
+use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
 use crate::source::Source;
@@ -63,6 +64,8 @@ async fn start_neo4j(neo4j: &Neo4JContainer, progress: &Progress) -> anyhow::Res
         .arg(format!("{}:7687", neo4j.ports.bolt))
         .arg("--env")
         .arg("NEO4J_AUTH=none")
+        .arg("--label")
+        .arg(Label::Identifier.run_arg(&neo4j.image.source.container_id()))
         .arg(neo4j.image.image_tag())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
