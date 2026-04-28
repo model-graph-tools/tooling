@@ -140,13 +140,13 @@ mod tests {
     #[test]
     fn port_offset_feature_pack() {
         let source = Source::parse("ai").unwrap();
-        assert_eq!(source.port_offset(), 1000);
+        assert_eq!(source.port_offset(), 10_000);
     }
 
     #[test]
     fn port_offsets_no_overlap() {
         let wf_max = 990u16; // WildFly 99.0 = 99*10+0 = 990
-        let fp_min = 1000u16;
+        let fp_min = 10_000u16;
         assert!(
             wf_max < fp_min,
             "WildFly and feature pack port ranges overlap"

@@ -5,6 +5,9 @@ use std::collections::BTreeMap;
 use anyhow::bail;
 use lazy_static::lazy_static;
 
+// Keeps feature pack ports (bolt 16000+, HTTP 17000+) well above WildFly ports (bolt 6100–6990, HTTP 7100–7990).
+const FP_PORT_OFFSET_BASE: u16 = 10_000;
+
 lazy_static! {
     static ref FEATURE_PACKS: BTreeMap<(&'static str, &'static str), FeaturePack> = {
         let mut m = BTreeMap::new();
@@ -77,7 +80,7 @@ pub struct FeaturePack {
 impl FeaturePack {
     /// Computes the port offset from shortcut and version indices (starting at 1000).
     pub fn port_offset(&self) -> u16 {
-        1000 + (self.shortcut_index * 100) + self.version_index
+        FP_PORT_OFFSET_BASE + (self.shortcut_index * 100) + self.version_index
     }
 
     /// Returns the container identifier (e.g. `ai-0.9.0`).
@@ -261,11 +264,11 @@ mod tests {
 
     #[test]
     fn port_offset() {
-        assert_eq!(FeaturePack::parse("ai").unwrap().port_offset(), 1000);
-        assert_eq!(FeaturePack::parse("graphql").unwrap().port_offset(), 1100);
-        assert_eq!(FeaturePack::parse("grpc").unwrap().port_offset(), 1200);
-        assert_eq!(FeaturePack::parse("keycloak").unwrap().port_offset(), 1300);
-        assert_eq!(FeaturePack::parse("myfaces").unwrap().port_offset(), 1400);
+        assert_eq!(FeaturePack::parse("ai").unwrap().port_offset(), 10_000);
+        assert_eq!(FeaturePack::parse("graphql").unwrap().port_offset(), 10_100);
+        assert_eq!(FeaturePack::parse("grpc").unwrap().port_offset(), 10_200);
+        assert_eq!(FeaturePack::parse("keycloak").unwrap().port_offset(), 10_300);
+        assert_eq!(FeaturePack::parse("myfaces").unwrap().port_offset(), 10_400);
     }
 
     #[test]
@@ -290,11 +293,11 @@ mod tests {
     }
 
     #[test]
-    fn port_offsets_start_at_1000() {
+    fn port_offsets_start_at_10000() {
         for fp in FEATURE_PACKS.values() {
             assert!(
-                fp.port_offset() >= 1000,
-                "Feature pack '{}' has port offset {} below 1000",
+                fp.port_offset() >= 10_000,
+                "Feature pack '{}' has port offset {} below 10000",
                 fp.shortcut,
                 fp.port_offset()
             );
