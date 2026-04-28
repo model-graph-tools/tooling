@@ -5,9 +5,9 @@
 
 use super::cleanup::{build_neo4j_image, cleanup};
 use super::neo4j_ops::start_neo4j;
-use super::runner::{download_analyzer, run_analyzer};
+use super::runner::{ANALYZER_IMAGE, download_analyzer, run_analyzer};
 use crate::constants::analyzer_url;
-use crate::container::{container_command, create_network, healthcheck, network_name};
+use crate::container::{container_command, create_network, healthcheck, network_name, pull_image};
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{Progress, step_header};
 use crate::source::Source;
@@ -150,6 +150,28 @@ async fn prepare_environment(
     step_header(1, TOTAL_STEPS, "Preparing environment...");
     let multi_progress = MultiProgress::new();
     let mut tasks = JoinSet::new();
+
+    let wf_image = instances[0].admin_container.image_name();
+    let wf_progress = Progress::join(&multi_progress, "wildfly image");
+    tasks.spawn(async move {
+        let result = pull_image(&wf_image, &wf_progress).await;
+        match &result {
+            Ok(()) => wf_progress.finish_success(Some("ready")),
+            Err(e) => wf_progress.finish_error(&e.to_string()),
+        }
+        result.map(|()| PrepareResult::WildFly)
+    });
+
+    let analyzer_image = ANALYZER_IMAGE.to_string();
+    let analyzer_img_progress = Progress::join(&multi_progress, "analyzer image");
+    tasks.spawn(async move {
+        let result = pull_image(&analyzer_image, &analyzer_img_progress).await;
+        match &result {
+            Ok(()) => analyzer_img_progress.finish_success(Some("ready")),
+            Err(e) => analyzer_img_progress.finish_error(&e.to_string()),
+        }
+        result.map(|()| PrepareResult::WildFly)
+    });
 
     let dl_progress = Progress::join(&multi_progress, "analyzer");
     let url = analyzer_url();

@@ -1,6 +1,6 @@
 //! Starts Neo4J containers from pre-built images.
 
-use crate::container::{container_command, healthcheck, verify_container_command};
+use crate::container::{container_command, healthcheck, pull_image, verify_container_command};
 use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
@@ -57,6 +57,8 @@ pub async fn start(sources: &[Source]) -> anyhow::Result<()> {
 
 /// Starts a single Neo4J container from a pre-built image and waits for it to become healthy.
 async fn start_neo4j(neo4j: &Neo4JContainer, progress: &Progress) -> anyhow::Result<()> {
+    pull_image(&neo4j.image.image_tag(), progress).await?;
+
     progress.show_progress("starting container...");
     let mut cmd = container_command()?;
     cmd.arg("run")

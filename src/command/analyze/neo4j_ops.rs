@@ -1,6 +1,6 @@
 //! Neo4J container lifecycle operations shared across analysis pipelines.
 
-use crate::container::{container_command, healthcheck};
+use crate::container::{container_command, healthcheck, pull_image};
 use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::Progress;
@@ -15,6 +15,8 @@ pub(super) async fn start_neo4j(
     network: &str,
     progress: &Progress,
 ) -> anyhow::Result<()> {
+    pull_image(&Neo4JImage::base_image_name(), progress).await?;
+
     progress.show_progress("creating volume...");
     let mut volume_cmd = container_command()?;
     volume_cmd

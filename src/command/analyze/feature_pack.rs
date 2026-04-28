@@ -6,7 +6,7 @@
 use super::cleanup::{build_neo4j_image, cleanup_minimal};
 use super::neo4j_ops::start_neo4j;
 use super::runner::run_doc_zip_analyzer;
-use crate::container::{create_network, network_name};
+use crate::container::{create_network, network_name, pull_image};
 use crate::download::download_file;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{Progress, step_header};
@@ -36,6 +36,17 @@ pub(super) async fn run_feature_pack_analysis(
         step_header(1, TOTAL_STEPS, "Preparing environment...");
         let multi_progress = MultiProgress::new();
         let mut tasks = JoinSet::new();
+
+        let analyzer_image = super::runner::ANALYZER_IMAGE.to_string();
+        let analyzer_img_progress = Progress::join(&multi_progress, "analyzer image");
+        tasks.spawn(async move {
+            let result = pull_image(&analyzer_image, &analyzer_img_progress).await;
+            match &result {
+                Ok(()) => analyzer_img_progress.finish_success(Some("ready")),
+                Err(e) => analyzer_img_progress.finish_error(&e.to_string()),
+            }
+            result.map(|()| PathBuf::new())
+        });
 
         let dl_progress = Progress::join(&multi_progress, "doc-zip");
         let url = fp.download_url();

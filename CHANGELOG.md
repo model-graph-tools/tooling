@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fix gear emoji (COG) using correct Unicode codepoint `U+2699 U+FE0F`
 - Fix feature pack port conflicts by raising port offset base from 1,000 to 10,000, preventing bolt port collisions with WildFly HTTP ports
+- Pre-pull container images (Neo4J, WildFly, analyzer JRE) before starting containers to prevent healthcheck timeouts on first run
 
 ### Changed
 - Build multi-arch manifest images (linux/amd64, linux/arm64) instead of single-arch images during analysis

@@ -177,6 +177,25 @@ pub async fn local_image_names() -> anyhow::Result<HashSet<String>> {
         .collect())
 }
 
+/// Pulls a container image, showing progress on the provided spinner.
+pub async fn pull_image(image: &str, progress: &Progress) -> anyhow::Result<()> {
+    progress.show_progress(&format!("pulling {}...", image));
+    let mut cmd = container_command()?;
+    cmd.arg("pull")
+        .arg(image)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let output = cmd.output().await?;
+    if !output.status.success() {
+        bail!(
+            "Failed to pull image {}: {}",
+            image,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(())
+}
+
 /// Maximum number of healthcheck polling attempts before giving up.
 const MAX_HEALTHCHECK_ATTEMPTS: u32 = 30;
 
