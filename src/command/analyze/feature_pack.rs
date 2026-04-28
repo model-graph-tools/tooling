@@ -38,22 +38,22 @@ pub(super) async fn run_feature_pack_analysis(
         let mut tasks = JoinSet::new();
 
         let analyzer_image = super::runner::ANALYZER_IMAGE.to_string();
-        let analyzer_img_progress = Progress::join(&multi_progress, "analyzer image");
+        let analyzer_img_progress = Progress::join(&multi_progress, "Analyzer image");
         tasks.spawn(async move {
             let result = pull_image(&analyzer_image, &analyzer_img_progress).await;
             match &result {
-                Ok(()) => analyzer_img_progress.finish_success(Some("ready")),
+                Ok(()) => analyzer_img_progress.finish_success(Some("Ready")),
                 Err(e) => analyzer_img_progress.finish_error(&e.to_string()),
             }
             result.map(|()| PathBuf::new())
         });
 
-        let dl_progress = Progress::join(&multi_progress, "doc-zip");
+        let dl_progress = Progress::join(&multi_progress, &format!("Download {}", fp.display_name()));
         let url = fp.download_url();
         tasks.spawn(async move {
             let result = download_doc_zip(&url, &dl_progress).await;
             match &result {
-                Ok(_) => dl_progress.finish_success(Some("ready")),
+                Ok(_) => dl_progress.finish_success(Some("Ready")),
                 Err(e) => dl_progress.finish_error(&e.to_string()),
             }
             result
@@ -61,11 +61,11 @@ pub(super) async fn run_feature_pack_analysis(
 
         let neo4j_clone = neo4j.clone();
         let network_clone = network.clone();
-        let neo4j_progress = Progress::join(&multi_progress, "neo4j");
+        let neo4j_progress = Progress::join(&multi_progress, "Neo4J");
         tasks.spawn(async move {
             let result = start_neo4j(&neo4j_clone, &network_clone, &neo4j_progress).await;
             match &result {
-                Ok(()) => neo4j_progress.finish_success(Some("ready")),
+                Ok(()) => neo4j_progress.finish_success(Some("Ready")),
                 Err(e) => neo4j_progress.finish_error(&e.to_string()),
             }
             result.map(|()| PathBuf::new())
@@ -86,7 +86,7 @@ pub(super) async fn run_feature_pack_analysis(
         let progress = Progress::new(&fp.display_name());
         let result = run_doc_zip_analyzer(&doc_zip_path, &neo4j, &network, &progress).await;
         match &result {
-            Ok(()) => progress.finish_success(Some("done")),
+            Ok(()) => progress.finish_success(Some("Done")),
             Err(e) => progress.finish_error(&e.to_string()),
         }
         result?;

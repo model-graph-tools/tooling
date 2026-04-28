@@ -52,7 +52,7 @@ pub async fn stop(sources: Option<&[Source]>, all: bool) -> anyhow::Result<()> {
         tasks.spawn(async move {
             let result = stop_container(&name).await;
             match &result {
-                Ok(()) => progress.finish_success(Some("stopped")),
+                Ok(()) => progress.finish_success(Some("Stopped")),
                 Err(e) => progress.finish_error(&e.to_string()),
             }
             CommandStatus::from_result(&name, &result)

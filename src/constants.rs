@@ -15,7 +15,7 @@ pub fn analyzer_url() -> String {
 }
 
 /// Neo4J Docker image version tag used for the base image.
-pub static NEO4J_VERSION: &str = "5.26-community";
+pub static NEO4J_VERSION: &str = "2026.04-community";
 
 /// Neo4J Docker image repository.
 pub static NEO4J_IMAGE: &str = "docker.io/neo4j";

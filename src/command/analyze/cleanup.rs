@@ -23,7 +23,7 @@ pub(super) async fn build_neo4j_image(neo4j: &Neo4JContainer) -> anyhow::Result<
         .build_image(&neo4j.container_name(), &progress)
         .await?;
 
-    progress.finish_success(Some("ready"));
+    progress.finish_success(Some("Ready"));
     Ok(())
 }
 
@@ -45,7 +45,7 @@ pub(super) async fn cleanup(
         tasks.spawn(async move {
             match stop_container(&container_name).await {
                 Ok(()) => {
-                    progress.finish_success(Some("stopped"));
+                    progress.finish_success(Some("Stopped"));
                     CommandStatus::success(&container_name)
                 }
                 Err(e) => {
@@ -94,7 +94,7 @@ fn cleanup_resource(name: &str, result: anyhow::Result<()>) -> CommandStatus {
     let progress = Progress::new(name);
     match result {
         Ok(()) => {
-            progress.finish_success(Some("removed"));
+            progress.finish_success(Some("Removed"));
             CommandStatus::success(name)
         }
         Err(e) => {

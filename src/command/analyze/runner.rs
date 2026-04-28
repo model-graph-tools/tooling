@@ -118,7 +118,7 @@ pub(super) async fn run_doc_zip_analyzer(
     if !analyzer_jar.exists() {
         let dl_progress = Progress::new("analyzer");
         download_analyzer(&crate::constants::analyzer_url(), &dl_progress).await?;
-        dl_progress.finish_success(Some("ready"));
+        dl_progress.finish_success(Some("Ready"));
     }
 
     let analyzer_container_name = format!("mgt-analyzer-{}", neo4j.container_name());

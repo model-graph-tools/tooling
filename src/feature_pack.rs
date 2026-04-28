@@ -83,9 +83,13 @@ impl FeaturePack {
         FP_PORT_OFFSET_BASE + (self.shortcut_index * 100) + self.version_index
     }
 
-    /// Returns the container identifier (e.g. `ai-0.9.0`).
+    /// Returns the container identifier (e.g. `ai-0-9-0`).
+    ///
+    /// Dots are replaced with dashes because the container name is used as a
+    /// hostname on the container network, and the Neo4J bolt driver rejects
+    /// hostnames that look like dotted IP addresses.
     pub fn container_id(&self) -> String {
-        format!("{}-{}", self.shortcut, self.version)
+        format!("{}-{}", self.shortcut, self.version.replace('.', "-"))
     }
 
     /// Parses a shortcut (`ai`) or versioned identifier (`ai:0.9.0`).
@@ -277,9 +281,9 @@ mod tests {
     #[test]
     fn container_id() {
         let fp = FeaturePack::parse("ai").unwrap();
-        assert_eq!(fp.container_id(), "ai-0.9.0");
+        assert_eq!(fp.container_id(), "ai-0-9-0");
         let fp = FeaturePack::parse("graphql").unwrap();
-        assert_eq!(fp.container_id(), "graphql-2.7.0");
+        assert_eq!(fp.container_id(), "graphql-2-7-0");
     }
 
     #[test]

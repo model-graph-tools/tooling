@@ -194,7 +194,7 @@ mod tests {
     #[test]
     fn container_id_feature_pack() {
         let source = Source::parse("ai").unwrap();
-        assert_eq!(source.container_id(), "ai-0.9.0");
+        assert_eq!(source.container_id(), "ai-0-9-0");
     }
 
     #[test]
