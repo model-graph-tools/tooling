@@ -68,13 +68,7 @@ impl Source {
         match self {
             Source::WildFly(wc) => format!("WildFly {}", wc.display_version()),
             Source::FeaturePack(fp) => {
-                let capitalized: String = fp
-                    .shortcut
-                    .chars()
-                    .enumerate()
-                    .map(|(i, c)| if i == 0 { c.to_ascii_uppercase() } else { c })
-                    .collect();
-                format!("{} Feature Pack {}", capitalized, fp.version)
+                format!("{} Feature Pack {}", fp.name, fp.version)
             }
         }
     }

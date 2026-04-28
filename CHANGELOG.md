@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pre-pull container images (Neo4J, WildFly, analyzer JRE) before starting containers to prevent healthcheck timeouts on first run
 - Replace dots with dashes in feature pack container IDs
 - Increase health check retries to 60
+- Fix feature pack welcome labels using correct casing (AI, GraphQL, gRPC, MyFaces) via new `name` field
 
 ### Changed
 - Build multi-arch manifest images (linux/amd64, linux/arm64) instead of single-arch images during analysis

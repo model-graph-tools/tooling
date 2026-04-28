@@ -14,6 +14,7 @@ lazy_static! {
         // ai (shortcut_index=0)
         m.insert(("ai", "0.9.0"), FeaturePack {
             shortcut: "ai",
+            name: "AI",
             group_id: "org.wildfly.generative-ai",
             artifact_id: "wildfly-ai-feature-pack",
             shortcut_index: 0,
@@ -24,6 +25,7 @@ lazy_static! {
         // graphql (shortcut_index=1)
         m.insert(("graphql", "2.7.0"), FeaturePack {
             shortcut: "graphql",
+            name: "GraphQL",
             group_id: "org.wildfly.extras.graphql",
             artifact_id: "wildfly-microprofile-graphql-feature-pack",
             shortcut_index: 1,
@@ -34,6 +36,7 @@ lazy_static! {
         // grpc (shortcut_index=2)
         m.insert(("grpc", "0.1.16"), FeaturePack {
             shortcut: "grpc",
+            name: "gRPC",
             group_id: "org.wildfly.extras.grpc",
             artifact_id: "wildfly-grpc-feature-pack",
             shortcut_index: 2,
@@ -44,6 +47,7 @@ lazy_static! {
         // keycloak (shortcut_index=3)
         m.insert(("keycloak", "26.6.1"), FeaturePack {
             shortcut: "keycloak",
+            name: "Keycloak",
             group_id: "org.keycloak",
             artifact_id: "keycloak-saml-adapter-galleon-pack",
             shortcut_index: 3,
@@ -54,6 +58,7 @@ lazy_static! {
         // myfaces (shortcut_index=4)
         m.insert(("myfaces", "2.0.3"), FeaturePack {
             shortcut: "myfaces",
+            name: "MyFaces",
             group_id: "org.wildfly",
             artifact_id: "wildfly-myfaces-feature-pack",
             shortcut_index: 4,
@@ -69,6 +74,7 @@ lazy_static! {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FeaturePack {
     pub shortcut: &'static str,
+    pub name: &'static str,
     pub group_id: &'static str,
     pub artifact_id: &'static str,
     pub shortcut_index: u16,
