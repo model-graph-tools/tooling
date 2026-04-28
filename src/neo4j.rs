@@ -1,25 +1,9 @@
 //! Neo4J container, image, and port management.
 
+use crate::constants::{neo4j_model_db_dockerfile, NEO4J_IMAGE, NEO4J_VERSION};
 use crate::container::run_container_cmd;
 use crate::progress::Progress;
 use crate::source::Source;
-
-/// Neo4J Docker image version tag used for the base image.
-pub static NEO4J_VERSION: &str = "5.26.12-community";
-
-/// Neo4J Docker image repository.
-pub static NEO4J_IMAGE: &str = "docker.io/neo4j";
-
-/// Dockerfile template for building a Neo4J image with pre-populated databases.
-const DOCKERFILE_TEMPLATE: &str = r#"ARG NEO4J_VERSION=5.26
-FROM neo4j:${NEO4J_VERSION}
-COPY --chown=neo4j:neo4j databases /data/databases
-COPY --chown=neo4j:neo4j transactions /data/transactions
-ENV NEO4J_AUTH=none
-ENV NEO4J_server_databases_default__to__read__only=true
-ENV NEO4J_browser_post__connect__cmd="play https://model-graph-tools.github.io/assets/welcome.html"
-ENV NEO4J_browser_remote__content__hostname__whitelist="model-graph-tools.github.io"
-"#;
 
 // ------------------------------------------------------ ports
 
@@ -93,7 +77,7 @@ impl Neo4JImage {
         copy_from_container(container_name, "/data/databases", build_path).await?;
         copy_from_container(container_name, "/data/transactions", build_path).await?;
 
-        std::fs::write(build_path.join("Dockerfile"), DOCKERFILE_TEMPLATE)?;
+        std::fs::write(build_path.join("Dockerfile"), neo4j_model_db_dockerfile())?;
 
         progress.show_progress("building image...");
         let image_tag = self.image_tag();
