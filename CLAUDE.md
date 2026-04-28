@@ -48,6 +48,7 @@ The codebase is organized into top-level modules and a `command/` submodule tree
   - `neo4j_ops.rs` — Neo4J container start/stop for analysis.
   - `feature_pack.rs` — Feature pack resolution and container setup.
   - `cleanup.rs` — Resource cleanup after analysis.
+- **`push.rs`** — Push Neo4J model DB images to quay.io.
 - **`start.rs`** — Start Neo4J model DB containers.
 - **`stop.rs`** — Stop Neo4J model DB containers.
 - **`browse.rs`** — Open Neo4J browser for running containers.

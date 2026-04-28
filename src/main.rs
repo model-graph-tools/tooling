@@ -15,7 +15,7 @@ mod source;
 
 use crate::args::{source_argument, sources_argument};
 use crate::command::{
-    analyze, browse, completions, feature_packs_cmd, images, ps, start, stop, versions,
+    analyze, browse, completions, feature_packs_cmd, images, ps, push, start, stop, versions,
 };
 use crate::completion::{complete_multiple_identifiers, complete_single_identifier};
 use crate::source::Source;
@@ -31,6 +31,14 @@ fn build_app_full() -> clap::Command {
                 arg.value_parser(parse_source)
                     .add(ArgValueCompleter::new(complete_single_identifier))
             })
+        })
+        .mut_subcommand("push", |sub_cmd| {
+            sub_cmd
+                .mut_arg("identifier", |arg| {
+                    arg.value_parser(parse_source_list)
+                        .add(ArgValueCompleter::new(complete_multiple_identifiers))
+                })
+                .mut_arg("chunks", |arg| arg.value_parser(clap::value_parser!(u16)))
         })
         .mut_subcommand("start", |sub_cmd| {
             sub_cmd.mut_arg("identifier", |arg| {
@@ -60,6 +68,10 @@ async fn main() -> Result<()> {
 
     match matches.subcommand() {
         Some(("analyze", m)) => analyze(&source_argument(m)).await,
+        Some(("push", m)) => {
+            let chunk_size = m.get_one::<u16>("chunks").copied().unwrap_or(0);
+            push(&sources_argument(m), chunk_size).await
+        }
         Some(("start", m)) => start(&sources_argument(m)).await,
         Some(("stop", m)) => {
             let all = m.get_flag("all");

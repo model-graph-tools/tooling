@@ -31,6 +31,18 @@ pub fn build_app() -> Command {
                 .required(true)
                 .help("A WildFly version (e.g. 39, 26.1) or feature pack (e.g. ai, graphql)")))
 
+        // push
+        .subcommand(Command::new("push")
+            .about("Push Neo4J model DB images to the remote registry")
+            .arg(Arg::new("identifier")
+                .required(true)
+                .help("WildFly versions, feature packs, or a mix (e.g. 34,ai,graphql)"))
+            .arg(Arg::new("chunks")
+                .short('c')
+                .long("chunks")
+                .value_name("SIZE")
+                .help("Push in batches of SIZE images instead of all at once")))
+
         // start
         .subcommand(Command::new("start")
             .about("Start Neo4J model DB containers")

@@ -1,9 +1,10 @@
 //! Neo4J container, image, and port management.
 
-use crate::constants::{NEO4J_IMAGE, NEO4J_VERSION, neo4j_model_db_dockerfile};
-use crate::container::run_container_cmd;
+use crate::constants::{NEO4J_IMAGE, NEO4J_VERSION, PLATFORMS, neo4j_model_db_dockerfile};
+use crate::container::{container_command, run_container_cmd};
 use crate::progress::Progress;
 use crate::source::Source;
+use std::process::Stdio;
 
 // ------------------------------------------------------ ports
 
@@ -64,7 +65,7 @@ impl Neo4JImage {
         }
     }
 
-    /// Copies database files from the running container and builds a tagged image.
+    /// Copies database files from the running container and builds a multi-arch manifest image.
     pub async fn build_image(
         &self,
         container_name: &str,
@@ -79,12 +80,37 @@ impl Neo4JImage {
 
         std::fs::write(build_path.join("Dockerfile"), neo4j_model_db_dockerfile())?;
 
-        progress.show_progress("building image...");
         let image_tag = self.image_tag();
+
+        // Remove any existing manifest (ignore errors if it doesn't exist)
+        progress.show_progress("creating manifest...");
+        let mut rm_cmd = container_command()?;
+        rm_cmd
+            .arg("manifest")
+            .arg("rm")
+            .arg(&image_tag)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        let _ = rm_cmd.output().await;
+
+        run_container_cmd(
+            &["manifest", "create", &image_tag],
+            "Manifest creation failed",
+        )
+        .await?;
+
+        progress.show_progress("building multi-arch image...");
         let build_path_str = build_path.to_string_lossy();
         run_container_cmd(
-            &["build", "-t", &image_tag, &build_path_str],
-            "Image build failed",
+            &[
+                "build",
+                "--platform",
+                PLATFORMS,
+                "--manifest",
+                &image_tag,
+                &build_path_str,
+            ],
+            "Multi-arch image build failed",
         )
         .await
     }

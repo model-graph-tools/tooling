@@ -9,6 +9,7 @@
 - [Identifiers](#identifiers)
 - [Commands](#commands)
     - [analyze](#analyze)
+    - [push](#push)
     - [start](#start)
     - [stop](#stop)
     - [browse](#browse)
@@ -113,6 +114,16 @@ Analyzes the management model of a WildFly instance or feature pack and builds a
 ```shell
 mgt analyze 34
 mgt analyze ai
+```
+
+## push
+
+Pushes Neo4J model DB images to the remote registry. Images must have been built previously with `mgt analyze`. Requires `podman login quay.io` beforehand.
+
+```shell
+mgt push 34
+mgt push 34,ai,graphql
+mgt push 26..29 --chunks 2
 ```
 
 ## start

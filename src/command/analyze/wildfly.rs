@@ -14,15 +14,63 @@ use crate::source::Source;
 use anyhow::{anyhow, bail};
 use console::style;
 use indicatif::MultiProgress;
+use std::collections::HashMap;
 use std::env::temp_dir;
 use std::path::PathBuf;
 use std::process::Stdio;
+use std::sync::LazyLock;
 use tokio::task::JoinSet;
 use wado::{AdminContainer, Ports, ServerType, StandaloneInstance};
 use wildfly_container_versions::WildFlyContainer;
 
 /// Total number of pipeline steps shown in step headers.
 const TOTAL_STEPS: u32 = 4;
+
+/// Per-version mapping of WildFly identifiers to their server configurations.
+///
+/// Keyed by `WildFlyContainer.identifier` (e.g. `100` for 10.0, `261` for 26.1).
+static CONFIGURATIONS: LazyLock<HashMap<u16, Vec<WildFlyConfiguration>>> = LazyLock::new(|| {
+    let fha = || WildFlyConfiguration {
+        config: "standalone-full-ha.xml",
+        suffix: "fha",
+        append: false,
+    };
+    let mp = || WildFlyConfiguration {
+        config: "standalone-microprofile.xml",
+        suffix: "mp",
+        append: true,
+    };
+
+    let mut m = HashMap::new();
+    // 10.0 - 18.0: standalone-full-ha.xml only
+    for id in [100, 101, 110, 120, 130, 140, 150, 160, 170, 180] {
+        m.insert(id, vec![fha()]);
+    }
+    // 19.0+ : standalone-full-ha.xml + standalone-microprofile.xml
+    for id in [
+        190, 191, 200, 210, 220, 230, 240, 250, 260, 261, 270, 280, 290, 300, 310, 320, 330, 340,
+        350, 360, 370, 380, 390,
+    ] {
+        m.insert(id, vec![fha(), mp()]);
+    }
+    m
+});
+
+/// Default configurations for unknown/future WildFly versions.
+static DEFAULT_CONFIGURATIONS: LazyLock<Vec<WildFlyConfiguration>> = LazyLock::new(|| {
+    vec![
+        WildFlyConfiguration {
+            config: "standalone-full-ha.xml",
+            suffix: "fha",
+            append: false,
+        },
+        WildFlyConfiguration {
+            config: "standalone-microprofile.xml",
+            suffix: "mp",
+            append: true,
+        },
+    ]
+});
 
 /// A WildFly server configuration to analyze.
 struct WildFlyConfiguration {
@@ -34,23 +82,13 @@ struct WildFlyConfiguration {
 
 /// Returns the server configurations to analyze for a given WildFly version.
 ///
-/// Versions 28+ include both `standalone-full-ha.xml` and
-/// `standalone-microprofile.xml`; older versions only use `standalone-full-ha.xml`.
-fn wildfly_configurations(wildfly_container: &WildFlyContainer) -> Vec<WildFlyConfiguration> {
-    let major = wildfly_container.version.major;
-    let mut configs = vec![WildFlyConfiguration {
-        config: "standalone-full-ha.xml",
-        suffix: "fha",
-        append: false,
-    }];
-    if major >= 28 {
-        configs.push(WildFlyConfiguration {
-            config: "standalone-microprofile.xml",
-            suffix: "mp",
-            append: true,
-        });
-    }
-    configs
+/// Looks up the version in the explicit mapping. Unknown/future versions
+/// fall back to both `standalone-full-ha.xml` and `standalone-microprofile.xml`.
+fn wildfly_configurations(wildfly_container: &WildFlyContainer) -> &'static [WildFlyConfiguration] {
+    CONFIGURATIONS
+        .get(&wildfly_container.identifier)
+        .map(|v| v.as_slice())
+        .unwrap_or(&DEFAULT_CONFIGURATIONS)
 }
 
 /// Orchestrates the full WildFly analysis pipeline: prepare environment,
@@ -85,10 +123,10 @@ pub(super) async fn run_wildfly_analysis(
         .collect();
 
     create_network(&network).await?;
-    prepare_environment(&instances, &configs, &neo4j, &network).await?;
+    prepare_environment(&instances, configs, &neo4j, &network).await?;
 
     let result = async {
-        run_analyzers(&instances, &configs, &neo4j, &network).await?;
+        run_analyzers(&instances, configs, &neo4j, &network).await?;
         build_neo4j_image(&neo4j).await
     }
     .await;
@@ -266,15 +304,27 @@ mod tests {
 
     #[test]
     fn configs_boundary_version() {
-        let wc = WildFlyContainer::version("28").unwrap();
+        let wc = WildFlyContainer::version("19").unwrap();
         let configs = wildfly_configurations(&wc);
         assert_eq!(configs.len(), 2);
     }
 
     #[test]
     fn configs_below_boundary() {
-        let wc = WildFlyContainer::version("27").unwrap();
+        let wc = WildFlyContainer::version("18").unwrap();
         let configs = wildfly_configurations(&wc);
         assert_eq!(configs.len(), 1);
+    }
+
+    #[test]
+    fn configs_unmapped_identifier_uses_default() {
+        // Identifier 999 is not in the CONFIGURATIONS map
+        assert!(!CONFIGURATIONS.contains_key(&999));
+        assert_eq!(DEFAULT_CONFIGURATIONS.len(), 2);
+        assert_eq!(DEFAULT_CONFIGURATIONS[0].config, "standalone-full-ha.xml");
+        assert_eq!(
+            DEFAULT_CONFIGURATIONS[1].config,
+            "standalone-microprofile.xml"
+        );
     }
 }

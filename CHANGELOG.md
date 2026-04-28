@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add `push` subcommand to push Neo4J model DB images to quay.io with parallel execution, progress tracking, and optional `--chunks` flag for batched pushes
+
+### Changed
+- Build multi-arch manifest images (linux/amd64, linux/arm64) instead of single-arch images during analysis
+- Extend WildFly configuration mapping to cover all versions from 10.0 to 39.0, adding `standalone-microprofile.xml` analysis for versions 19.0+
+
 ## [0.0.1] - 2026-04-28
 
 - First release 🎉

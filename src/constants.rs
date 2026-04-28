@@ -16,6 +16,9 @@ pub static NEO4J_VERSION: &str = "5.26.12-community";
 /// Neo4J Docker image repository.
 pub static NEO4J_IMAGE: &str = "docker.io/neo4j";
 
+/// Target platforms for multi-arch image builds.
+pub static PLATFORMS: &str = "linux/amd64,linux/arm64";
+
 /// Returns a Dockerfile for building a Neo4J image with pre-populated databases.
 pub fn neo4j_model_db_dockerfile() -> String {
     format!(
