@@ -1,3 +1,5 @@
+//! Shell completion candidate generation for WildFly versions and feature packs.
+
 use std::ffi::OsStr;
 
 use crate::feature_pack::all_feature_pack_identifiers;
@@ -5,6 +7,7 @@ use clap_complete::engine::CompletionCandidate;
 use semver::Version;
 use wildfly_container_versions::{VERSIONS, WildFlyContainer};
 
+/// Returns completions for single-value arguments (versions + feature packs, no ranges).
 pub fn complete_single_identifier(_current: &OsStr) -> Vec<CompletionCandidate> {
     let mut completions = all_simple_versions();
     completions.extend(feature_pack_completions());
@@ -14,6 +17,7 @@ pub fn complete_single_identifier(_current: &OsStr) -> Vec<CompletionCandidate> 
         .collect()
 }
 
+/// Returns completions for multi-value arguments (comma-separated, ranges supported).
 pub fn complete_multiple_identifiers(current: &OsStr) -> Vec<CompletionCandidate> {
     let input = current.to_str().unwrap_or("");
     let parameter = if input.is_empty() { None } else { Some(input) };

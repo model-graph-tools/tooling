@@ -1,8 +1,11 @@
+//! Lists running Neo4J model DB containers in a table.
+
 use crate::container::{running_neo4j_containers, verify_container_command};
 use crate::source::Source;
 use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Cell, Color, ContentArrangement, Table};
 
+/// Lists all running Neo4J model DB containers in a formatted table.
 pub async fn ps() -> anyhow::Result<()> {
     verify_container_command()?;
 

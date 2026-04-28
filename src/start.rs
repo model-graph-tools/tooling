@@ -1,3 +1,5 @@
+//! Starts Neo4J containers from pre-built images.
+
 use crate::container::{container_command, healthcheck, verify_container_command};
 use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
@@ -10,11 +12,16 @@ use std::process::Stdio;
 use tokio::task::JoinSet;
 use tokio::time::Instant;
 
+/// Starts Neo4J containers for the given sources from their pre-built images.
 pub async fn start(sources: &[Source]) -> anyhow::Result<()> {
     verify_container_command()?;
 
     let count = sources.len();
-    let noun = if count == 1 { "container" } else { "containers" };
+    let noun = if count == 1 {
+        "container"
+    } else {
+        "containers"
+    };
     println!(
         "\n{}",
         style(format!("Starting {} Neo4J model DB {}", count, noun)).bold()
@@ -33,10 +40,8 @@ pub async fn start(sources: &[Source]) -> anyhow::Result<()> {
             let result = start_neo4j(&neo4j, &progress).await;
             match &result {
                 Ok(()) => {
-                    progress.finish_success(Some(&format!(
-                        "http://localhost:{}",
-                        neo4j.ports.http
-                    )));
+                    progress
+                        .finish_success(Some(&format!("http://localhost:{}", neo4j.ports.http)));
                 }
                 Err(e) => progress.finish_error(&e.to_string()),
             }

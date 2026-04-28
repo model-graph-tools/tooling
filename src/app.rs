@@ -1,3 +1,5 @@
+//! Clap command tree definition, shared between `main.rs` and `build.rs`.
+
 use clap::builder::Styles;
 use clap::builder::styling::{AnsiColor, Effects};
 use clap::{Arg, ArgAction, Command, crate_name, crate_version};

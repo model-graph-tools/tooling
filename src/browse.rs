@@ -1,8 +1,11 @@
+//! Opens the Neo4J browser for a given source's container.
+
 use crate::container::verify_container_command;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::source::Source;
 use console::style;
 
+/// Opens the Neo4J browser UI in the default web browser for the given source.
 pub fn browse(source: &Source) -> anyhow::Result<()> {
     verify_container_command()?;
 

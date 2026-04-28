@@ -1,3 +1,5 @@
+//! Feature pack registry, parsing, and Maven coordinate mapping.
+
 use std::collections::BTreeMap;
 
 use anyhow::bail;
@@ -60,6 +62,7 @@ lazy_static! {
     };
 }
 
+/// A registered feature pack with Maven coordinates and versioning metadata.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FeaturePack {
     pub shortcut: &'static str,
@@ -72,14 +75,17 @@ pub struct FeaturePack {
 }
 
 impl FeaturePack {
+    /// Computes the port offset from shortcut and version indices (starting at 1000).
     pub fn port_offset(&self) -> u16 {
         1000 + (self.shortcut_index * 100) + self.version_index
     }
 
+    /// Returns the container identifier (e.g. `ai-0.9.0`).
     pub fn container_id(&self) -> String {
         format!("{}-{}", self.shortcut, self.version)
     }
 
+    /// Parses a shortcut (`ai`) or versioned identifier (`ai:0.9.0`).
     pub fn parse(input: &str) -> anyhow::Result<FeaturePack> {
         if let Some((shortcut, version)) = input.split_once(':') {
             match FEATURE_PACKS.get(&(shortcut, version)) {
@@ -119,6 +125,7 @@ impl FeaturePack {
         }
     }
 
+    /// Builds the Maven Central URL for the doc-zip archive.
     pub fn download_url(&self) -> String {
         let group_path = self.group_id.replace('.', "/");
         format!(
@@ -127,17 +134,20 @@ impl FeaturePack {
         )
     }
 
+    /// Returns a human-readable name (e.g. `ai 0.9.0`).
     pub fn display_name(&self) -> String {
         format!("{} {}", self.shortcut, self.version)
     }
 }
 
+/// Returns the deduplicated list of registered feature pack shortcuts.
 pub fn known_shortcuts() -> Vec<&'static str> {
     let mut shortcuts: Vec<&str> = FEATURE_PACKS.keys().map(|(s, _)| *s).collect();
     shortcuts.dedup();
     shortcuts
 }
 
+/// Returns all registered versions for a given shortcut.
 pub fn known_versions(shortcut: &str) -> Vec<&'static str> {
     FEATURE_PACKS
         .keys()
@@ -146,6 +156,7 @@ pub fn known_versions(shortcut: &str) -> Vec<&'static str> {
         .collect()
 }
 
+/// Returns all identifiers: shortcuts and versioned forms (e.g. `ai`, `ai:0.9.0`).
 pub fn all_feature_pack_identifiers() -> Vec<String> {
     let mut ids: Vec<String> = known_shortcuts().iter().map(|s| s.to_string()).collect();
     for ((shortcut, version), _) in FEATURE_PACKS.iter() {
@@ -169,7 +180,11 @@ mod tests {
         ];
         for (input, expected_si, expected_version) in inputs {
             let fp = FeaturePack::parse(input).unwrap();
-            assert_eq!(fp.shortcut_index, expected_si, "Wrong shortcut_index for {}", input);
+            assert_eq!(
+                fp.shortcut_index, expected_si,
+                "Wrong shortcut_index for {}",
+                input
+            );
             assert_eq!(fp.version, expected_version, "Wrong version for {}", input);
         }
     }
@@ -262,7 +277,11 @@ mod tests {
         let len = offsets.len();
         offsets.sort();
         offsets.dedup();
-        assert_eq!(len, offsets.len(), "Feature pack port offsets must be unique");
+        assert_eq!(
+            len,
+            offsets.len(),
+            "Feature pack port offsets must be unique"
+        );
     }
 
     #[test]

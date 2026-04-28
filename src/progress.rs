@@ -1,3 +1,5 @@
+//! Terminal progress bars, step headers, and status reporting.
+
 use console::{Emoji, style, truncate_str};
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use std::time::Duration;
@@ -11,6 +13,7 @@ static PACKAGE: Emoji<'_, '_> = Emoji("\u{1f4e6}  ", "");
 static BROOM: Emoji<'_, '_> = Emoji("\u{1f9f9}  ", "");
 static SPARKLE: Emoji<'_, '_> = Emoji("\u{2728}  ", ":-)  ");
 
+/// Prints a numbered step header with an emoji prefix (e.g. `[1/4] wrench Preparing...`).
 pub fn step_header(step: u32, total: u32, description: &str) {
     let emoji = match step {
         1 => WRENCH,
@@ -27,6 +30,7 @@ pub fn step_header(step: u32, total: u32, description: &str) {
     );
 }
 
+/// Prints elapsed time since `instant` as a "Done in ..." message.
 pub fn done(instant: Instant) {
     println!(
         "\n{}Done in {}",
@@ -37,6 +41,7 @@ pub fn done(instant: Instant) {
 
 // ------------------------------------------------------ analysis status
 
+/// Captures the outcome of a container operation for summary reporting.
 #[derive(Clone)]
 pub struct CommandStatus {
     pub identifier: String,
@@ -45,6 +50,7 @@ pub struct CommandStatus {
 }
 
 impl CommandStatus {
+    /// Creates a successful status.
     pub fn success(identifier: &str) -> Self {
         CommandStatus {
             identifier: identifier.to_string(),
@@ -53,6 +59,7 @@ impl CommandStatus {
         }
     }
 
+    /// Creates a failed status with an error message.
     pub fn error(identifier: &str, error_message: &str) -> Self {
         CommandStatus {
             identifier: identifier.to_string(),
@@ -61,6 +68,7 @@ impl CommandStatus {
         }
     }
 
+    /// Creates a status from a `Result`, mapping `Err` to an error status.
     pub fn from_result<T>(identifier: &str, result: &anyhow::Result<T>) -> Self {
         match result {
             Ok(_) => Self::success(identifier),
@@ -69,6 +77,7 @@ impl CommandStatus {
     }
 }
 
+/// Prints a summary of failed operations, if any.
 pub fn summary(count: usize, status: &[CommandStatus]) {
     let failed: Vec<_> = status.iter().filter(|s| !s.success).collect();
     if !failed.is_empty() {
@@ -91,6 +100,7 @@ pub fn summary(count: usize, status: &[CommandStatus]) {
 
 // ------------------------------------------------------ progress
 
+/// A named spinner progress bar for tracking long-running operations.
 #[derive(Clone)]
 pub struct Progress {
     name: String,
@@ -98,6 +108,7 @@ pub struct Progress {
 }
 
 impl Progress {
+    /// Creates a progress bar and adds it to a `MultiProgress` group.
     pub fn join(multi_progress: &MultiProgress, name: &str) -> Progress {
         let progress = Progress {
             name: name.to_string(),
@@ -105,21 +116,18 @@ impl Progress {
         };
         progress.bar.enable_steady_tick(Duration::from_millis(100));
         multi_progress.add(progress.bar.clone());
-        progress
-            .bar
-            .set_message(style(name).cyan().to_string());
+        progress.bar.set_message(style(name).cyan().to_string());
         progress
     }
 
+    /// Creates a standalone progress bar.
     pub fn new(name: &str) -> Progress {
         let progress = Progress {
             name: name.to_string(),
             bar: Self::spinner(),
         };
         progress.bar.enable_steady_tick(Duration::from_millis(100));
-        progress
-            .bar
-            .set_message(style(name).cyan().to_string());
+        progress.bar.set_message(style(name).cyan().to_string());
         progress
     }
 
@@ -141,6 +149,7 @@ impl Progress {
             .expect("Invalid template")
     }
 
+    /// Updates the spinner message with the current operation status.
     pub fn show_progress(&self, text: &str) {
         let padded = format!("{:<width$}", self.name, width = NAME_WIDTH);
         self.bar.set_message(format!(
@@ -150,6 +159,7 @@ impl Progress {
         ));
     }
 
+    /// Finishes the spinner with a green checkmark and optional status text.
     pub fn finish_success(&self, status: Option<&str>) {
         self.bar.set_style(Self::finished_style());
         let padded = format!("{:<width$}", self.name, width = NAME_WIDTH);
@@ -169,6 +179,7 @@ impl Progress {
         self.bar.finish_with_message(msg);
     }
 
+    /// Abandons the spinner with a red cross and error message.
     pub fn finish_error(&self, err: &str) {
         self.bar.set_style(Self::finished_style());
         let padded = format!("{:<width$}", self.name, width = NAME_WIDTH);

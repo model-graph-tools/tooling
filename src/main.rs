@@ -1,3 +1,5 @@
+//! CLI entry point and subcommand dispatch for `mgt`.
+
 mod analyze;
 mod app;
 mod args;
@@ -6,6 +8,7 @@ mod completion;
 mod completions;
 mod constants;
 mod container;
+mod download;
 mod feature_pack;
 mod label;
 mod neo4j;

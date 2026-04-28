@@ -76,49 +76,29 @@ pub(super) async fn cleanup_minimal(neo4j: &Neo4JContainer, network: &str) -> Ve
 
 /// Removes the Neo4J container, its data volume, and the container network.
 async fn cleanup_neo4j_and_network(neo4j: &Neo4JContainer, network: &str) -> Vec<CommandStatus> {
-    let mut status: Vec<CommandStatus> = Vec::new();
-
     let neo4j_container = neo4j.container_name();
-    let neo4j_progress = Progress::new(&neo4j_container);
     let _ = stop_container(&neo4j_container).await;
-    match remove_container(&neo4j_container).await {
+    vec![
+        cleanup_resource(&neo4j_container, remove_container(&neo4j_container).await),
+        cleanup_resource(
+            &neo4j.volume_name(),
+            remove_volume(&neo4j.volume_name()).await,
+        ),
+        cleanup_resource(network, remove_network(network).await),
+    ]
+}
+
+fn cleanup_resource(name: &str, result: anyhow::Result<()>) -> CommandStatus {
+    let progress = Progress::new(name);
+    match result {
         Ok(()) => {
-            neo4j_progress.finish_success(Some("removed"));
-            status.push(CommandStatus::success(&neo4j_container));
+            progress.finish_success(Some("removed"));
+            CommandStatus::success(name)
         }
         Err(e) => {
             let msg = e.to_string();
-            neo4j_progress.finish_error(&msg);
-            status.push(CommandStatus::error(&neo4j_container, &msg));
+            progress.finish_error(&msg);
+            CommandStatus::error(name, &msg)
         }
     }
-
-    let volume_name = neo4j.volume_name();
-    let volume_progress = Progress::new(&volume_name);
-    match remove_volume(&volume_name).await {
-        Ok(()) => {
-            volume_progress.finish_success(Some("removed"));
-            status.push(CommandStatus::success(&volume_name));
-        }
-        Err(e) => {
-            let msg = e.to_string();
-            volume_progress.finish_error(&msg);
-            status.push(CommandStatus::error(&volume_name, &msg));
-        }
-    }
-
-    let network_progress = Progress::new(network);
-    match remove_network(network).await {
-        Ok(()) => {
-            network_progress.finish_success(Some("removed"));
-            status.push(CommandStatus::success(network));
-        }
-        Err(e) => {
-            let msg = e.to_string();
-            network_progress.finish_error(&msg);
-            status.push(CommandStatus::error(network, &msg));
-        }
-    }
-
-    status
 }

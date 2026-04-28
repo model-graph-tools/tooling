@@ -5,8 +5,9 @@
 //! while tracking progress.
 
 use crate::container::container_command;
+use crate::download::download_file;
 use crate::progress::Progress;
-use anyhow::{anyhow, bail};
+use anyhow::bail;
 use console::style;
 use std::collections::VecDeque;
 use std::env::temp_dir;
@@ -26,21 +27,7 @@ const ERROR_BUFFER_CAPACITY: usize = 20;
 ///
 /// Skips the download if the JAR already exists locally.
 pub(super) async fn download_analyzer(url: &str, progress: &Progress) -> anyhow::Result<PathBuf> {
-    let path = temp_dir().join("analyzer.jar");
-    if path.exists() {
-        return Ok(path);
-    }
-
-    progress.show_progress("downloading...");
-    let response = reqwest::get(url).await?;
-    if response.status().is_success() {
-        let mut file = File::create(&path)?;
-        let content = response.bytes().await?;
-        file.write_all(&content)?;
-        Ok(path)
-    } else {
-        Err(anyhow!("Failed to download {}: {}", url, response.status()))
-    }
+    download_file(url, "analyzer.jar", progress).await
 }
 
 /// Runs the analyzer against a live WildFly instance via the management interface.

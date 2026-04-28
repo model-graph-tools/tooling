@@ -1,3 +1,5 @@
+//! Shell completion script generation and installation.
+
 use std::env;
 use std::fs;
 use std::io::{self, Write};
@@ -9,6 +11,7 @@ use clap::ArgMatches;
 
 const SUPPORTED_SHELLS: &[&str] = &["bash", "zsh", "fish", "elvish", "powershell"];
 
+/// Generates or installs shell completions for the detected or specified shell.
 pub fn completions(matches: &ArgMatches) -> Result<()> {
     let shell = matches
         .get_one::<String>("shell")
@@ -125,9 +128,7 @@ fn print_post_install_instructions(shell: &str) {
             println!("\nAdd this to your ~/.config/elvish/rc.elv:\n  use mgt");
         }
         "powershell" => {
-            println!(
-                "\nAdd this to your PowerShell profile:\n  . ~/.config/powershell/mgt.ps1"
-            );
+            println!("\nAdd this to your PowerShell profile:\n  . ~/.config/powershell/mgt.ps1");
         }
         _ => {}
     }

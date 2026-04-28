@@ -1,6 +1,9 @@
+//! Analysis source abstraction: either a WildFly version or a feature pack.
+
 use crate::feature_pack::FeaturePack;
 use wildfly_container_versions::WildFlyContainer;
 
+/// An analysis source: either a WildFly version or a third-party feature pack.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Source {
     WildFly(WildFlyContainer),
@@ -8,6 +11,7 @@ pub enum Source {
 }
 
 impl Source {
+    /// Parses a single identifier, trying feature pack first, then WildFly version.
     pub fn parse(input: &str) -> anyhow::Result<Source> {
         if let Ok(fp) = FeaturePack::parse(input) {
             return Ok(Source::FeaturePack(fp));
@@ -17,10 +21,11 @@ impl Source {
             .map_err(|e| anyhow::anyhow!("{}", e))
     }
 
+    /// Parses a comma-separated list or range (e.g. `26,28,34` or `20..29`).
     pub fn parse_list(input: &str) -> anyhow::Result<Vec<Source>> {
         if input.contains("..") {
-            let containers = WildFlyContainer::enumeration(input)
-                .map_err(|e| anyhow::anyhow!("{}", e))?;
+            let containers =
+                WildFlyContainer::enumeration(input).map_err(|e| anyhow::anyhow!("{}", e))?;
             return Ok(containers.into_iter().map(Source::WildFly).collect());
         }
 
@@ -34,6 +39,7 @@ impl Source {
         Ok(sources)
     }
 
+    /// Returns a human-readable name (e.g. `34.0` or `ai 0.9.0`).
     pub fn display_name(&self) -> String {
         match self {
             Source::WildFly(wc) => wc.display_version(),
@@ -41,6 +47,7 @@ impl Source {
         }
     }
 
+    /// Returns the numeric port offset used for bolt/http port calculation.
     pub fn port_offset(&self) -> u16 {
         match self {
             Source::WildFly(wc) => wc.identifier,
@@ -48,6 +55,7 @@ impl Source {
         }
     }
 
+    /// Returns the identifier used in container and volume names (e.g. `340` or `ai-0.9.0`).
     pub fn container_id(&self) -> String {
         match self {
             Source::WildFly(wc) => wc.identifier.to_string(),
@@ -139,7 +147,10 @@ mod tests {
     fn port_offsets_no_overlap() {
         let wf_max = 990u16; // WildFly 99.0 = 99*10+0 = 990
         let fp_min = 1000u16;
-        assert!(wf_max < fp_min, "WildFly and feature pack port ranges overlap");
+        assert!(
+            wf_max < fp_min,
+            "WildFly and feature pack port ranges overlap"
+        );
     }
 
     #[test]

@@ -1,3 +1,5 @@
+//! Stops running Neo4J model DB containers.
+
 use crate::container::{running_neo4j_containers, stop_container, verify_container_command};
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
@@ -7,6 +9,7 @@ use indicatif::MultiProgress;
 use tokio::task::JoinSet;
 use tokio::time::Instant;
 
+/// Stops Neo4J containers by source identifier, or all if `--all` is passed.
 pub async fn stop(sources: Option<&[Source]>, all: bool) -> anyhow::Result<()> {
     verify_container_command()?;
 
@@ -30,7 +33,11 @@ pub async fn stop(sources: Option<&[Source]>, all: bool) -> anyhow::Result<()> {
     }
 
     let count = container_names.len();
-    let noun = if count == 1 { "container" } else { "containers" };
+    let noun = if count == 1 {
+        "container"
+    } else {
+        "containers"
+    };
     println!(
         "\n{}",
         style(format!("Stopping {} Neo4J model DB {}", count, noun)).bold()

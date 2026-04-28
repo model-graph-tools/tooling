@@ -1,3 +1,5 @@
+//! Container runtime abstraction (podman/docker) and common operations.
+
 use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage, RunningNeo4JContainer};
 use crate::progress::Progress;
@@ -10,12 +12,14 @@ use tokio::process::Command;
 use tokio::time::sleep;
 use which::which;
 
+/// Verifies that `podman` or `docker` is available on PATH.
 pub fn verify_container_command() -> Result<PathBuf, Error> {
     which("podman")
         .or_else(|_| which("docker"))
         .map_err(|_| anyhow::anyhow!("podman or docker not found"))
 }
 
+/// Returns a `Command` pre-configured with the container runtime (podman or docker).
 pub fn container_command() -> anyhow::Result<Command> {
     if let Ok(podman_path) = which("podman") {
         Ok(Command::new(podman_path))
@@ -30,19 +34,19 @@ fn is_podman() -> bool {
     which("podman").is_ok()
 }
 
+/// Derives the container network name from a source identifier.
 pub fn network_name(source: &Source) -> String {
     format!("mgt-network-{}", source.container_id())
 }
 
+/// Creates a container network, tolerating "already exists" errors.
 pub async fn create_network(name: &str) -> anyhow::Result<()> {
     let mut cmd = container_command()?;
     cmd.arg("network").arg("create");
     if is_podman() {
         cmd.arg("--ignore");
     }
-    cmd.arg(name)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+    cmd.arg(name).stdout(Stdio::piped()).stderr(Stdio::piped());
     let output = cmd.output().await?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -53,76 +57,53 @@ pub async fn create_network(name: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Runs a container subcommand, bailing with `error_context` on failure.
+pub async fn run_container_cmd(args: &[&str], error_context: &str) -> anyhow::Result<()> {
+    let mut cmd = container_command()?;
+    for arg in args {
+        cmd.arg(arg);
+    }
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let output = cmd.output().await?;
+    if !output.status.success() {
+        bail!(
+            "{}: {}",
+            error_context,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(())
+}
+
+/// Removes a container network.
 pub async fn remove_network(name: &str) -> anyhow::Result<()> {
-    let mut cmd = container_command()?;
-    cmd.arg("network")
-        .arg("rm")
-        .arg(name)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let output = cmd.output().await?;
-    if !output.status.success() {
-        bail!(
-            "Failed to remove network {}: {}",
-            name,
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    Ok(())
+    run_container_cmd(
+        &["network", "rm", name],
+        &format!("Failed to remove network {name}"),
+    )
+    .await
 }
 
+/// Stops a running container.
 pub async fn stop_container(name: &str) -> anyhow::Result<()> {
-    let mut cmd = container_command()?;
-    cmd.arg("stop")
-        .arg(name)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let output = cmd.output().await?;
-    if !output.status.success() {
-        bail!(
-            "Failed to stop {}: {}",
-            name,
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    Ok(())
+    run_container_cmd(&["stop", name], &format!("Failed to stop {name}")).await
 }
 
+/// Removes a container volume.
 pub async fn remove_volume(name: &str) -> anyhow::Result<()> {
-    let mut cmd = container_command()?;
-    cmd.arg("volume")
-        .arg("rm")
-        .arg(name)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let output = cmd.output().await?;
-    if !output.status.success() {
-        bail!(
-            "Failed to remove volume {}: {}",
-            name,
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    Ok(())
+    run_container_cmd(
+        &["volume", "rm", name],
+        &format!("Failed to remove volume {name}"),
+    )
+    .await
 }
 
+/// Removes a stopped container.
 pub async fn remove_container(name: &str) -> anyhow::Result<()> {
-    let mut cmd = container_command()?;
-    cmd.arg("rm")
-        .arg(name)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let output = cmd.output().await?;
-    if !output.status.success() {
-        bail!(
-            "Failed to remove container {}: {}",
-            name,
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    Ok(())
+    run_container_cmd(&["rm", name], &format!("Failed to remove container {name}")).await
 }
 
+/// Lists running Neo4J containers filtered by the `mgt` identifier label, sorted by port offset.
 pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContainer>> {
     let label = Label::Identifier;
     let mut cmd = container_command()?;
@@ -175,6 +156,7 @@ pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContai
 
 const MAX_HEALTHCHECK_ATTEMPTS: u32 = 30;
 
+/// Polls a URL until it returns HTTP 200, retrying once per second.
 pub async fn healthcheck(url: &str, progress: &Progress) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     for attempt in 1..=MAX_HEALTHCHECK_ATTEMPTS {

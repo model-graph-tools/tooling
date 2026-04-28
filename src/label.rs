@@ -1,31 +1,40 @@
+//! OCI container label management for Neo4J container identification.
+
+/// OCI container labels used to tag and filter `mgt`-managed containers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Label {
     Identifier,
 }
 
 impl Label {
+    /// Returns the fully-qualified OCI label key.
     pub fn key(&self) -> &'static str {
         match self {
             Label::Identifier => "org.wildfly.mgt.identifier",
         }
     }
 
+    /// Returns a `--filter` argument to match containers with this label.
     pub fn filter(&self) -> String {
         format!("label={}", self.key())
     }
 
+    /// Returns a `--filter` argument matching this label with a specific value.
     pub fn filter_value(&self, value: &str) -> String {
         format!("label={}={}", self.key(), value)
     }
 
+    /// Returns a `--label` argument for `container run` (e.g. `key=value`).
     pub fn run_arg(&self, value: &str) -> String {
         format!("{}={}", self.key(), value)
     }
 
+    /// Returns a Go template expression to extract this label's value in `--format`.
     pub fn format_expr(&self) -> String {
         format!("{{{{index .Labels \"{}\"}}}}", self.key())
     }
 
+    /// Parses a label value from container output, returning `None` for empty or `<no value>`.
     pub fn parse_value(&self, raw: &str) -> Option<String> {
         let trimmed = raw.trim();
         if trimmed.is_empty() || trimmed == "<no value>" {

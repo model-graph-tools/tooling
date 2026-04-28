@@ -7,15 +7,13 @@ use super::cleanup::{build_neo4j_image, cleanup_minimal};
 use super::neo4j_ops::start_neo4j;
 use super::runner::run_doc_zip_analyzer;
 use crate::container::{create_network, network_name};
+use crate::download::download_file;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{Progress, step_header};
 use crate::source::Source;
 use anyhow::anyhow;
 use console::style;
 use indicatif::MultiProgress;
-use std::env::temp_dir;
-use std::fs::File;
-use std::io::Write;
 use std::path::PathBuf;
 use tokio::task::JoinSet;
 
@@ -99,19 +97,5 @@ pub(super) async fn run_feature_pack_analysis(
 /// Skips the download if the file already exists locally.
 async fn download_doc_zip(url: &str, progress: &Progress) -> anyhow::Result<PathBuf> {
     let filename = url.rsplit('/').next().unwrap_or("doc.zip");
-    let path = temp_dir().join(filename);
-    if path.exists() {
-        return Ok(path);
-    }
-
-    progress.show_progress("downloading...");
-    let response = reqwest::get(url).await?;
-    if response.status().is_success() {
-        let mut file = File::create(&path)?;
-        let content = response.bytes().await?;
-        file.write_all(&content)?;
-        Ok(path)
-    } else {
-        Err(anyhow!("Failed to download {}: {}", url, response.status()))
-    }
+    download_file(url, filename, progress).await
 }
