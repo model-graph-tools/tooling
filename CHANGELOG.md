@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-04-28
+
 - First release 🎉
 
 [Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/model-graph-tools/tooling/compare/v0.0.0...v0.0.1

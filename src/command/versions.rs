@@ -10,7 +10,12 @@ pub fn versions() {
     table
         .load_preset(UTF8_BORDERS_ONLY)
         .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_header(vec!["Version", "Full Version", "WildFly Core", "Repository"]);
+        .set_header(vec![
+            "Version",
+            "Full Version",
+            "WildFly Core",
+            "Repository",
+        ]);
 
     for wc in VERSIONS.values() {
         table.add_row(vec![

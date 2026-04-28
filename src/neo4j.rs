@@ -1,6 +1,6 @@
 //! Neo4J container, image, and port management.
 
-use crate::constants::{neo4j_model_db_dockerfile, NEO4J_IMAGE, NEO4J_VERSION};
+use crate::constants::{NEO4J_IMAGE, NEO4J_VERSION, neo4j_model_db_dockerfile};
 use crate::container::run_container_cmd;
 use crate::progress::Progress;
 use crate::source::Source;

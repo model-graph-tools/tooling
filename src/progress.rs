@@ -8,10 +8,10 @@ use tokio::time::Instant;
 /// Column width for left-aligning progress bar names.
 const NAME_WIDTH: usize = 30;
 
-static WRENCH: Emoji<'_, '_> = Emoji("\u{1f527}  ", "");   // step 1: prepare
-static MAG: Emoji<'_, '_> = Emoji("\u{1f50d}  ", "");      // step 2: analyze
-static PACKAGE: Emoji<'_, '_> = Emoji("\u{1f4e6}  ", "");   // step 3: build
-static BROOM: Emoji<'_, '_> = Emoji("\u{1f9f9}  ", "");     // step 4: cleanup
+static WRENCH: Emoji<'_, '_> = Emoji("\u{1f527}  ", ""); // step 1: prepare
+static MAG: Emoji<'_, '_> = Emoji("\u{1f50d}  ", ""); // step 2: analyze
+static PACKAGE: Emoji<'_, '_> = Emoji("\u{1f4e6}  ", ""); // step 3: build
+static BROOM: Emoji<'_, '_> = Emoji("\u{1f9f9}  ", ""); // step 4: cleanup
 static SPARKLE: Emoji<'_, '_> = Emoji("\u{2728}  ", ":-)  "); // done
 
 /// Prints a numbered step header with an emoji prefix (e.g. `[1/4] wrench Preparing...`).
