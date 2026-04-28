@@ -31,6 +31,7 @@ pub fn container_command() -> anyhow::Result<Command> {
     }
 }
 
+/// Returns `true` if `podman` is available (used to enable podman-specific flags).
 fn is_podman() -> bool {
     which("podman").is_ok()
 }
@@ -176,6 +177,7 @@ pub async fn local_image_names() -> anyhow::Result<HashSet<String>> {
         .collect())
 }
 
+/// Maximum number of healthcheck polling attempts before giving up.
 const MAX_HEALTHCHECK_ATTEMPTS: u32 = 30;
 
 /// Polls a URL until it returns HTTP 200, retrying once per second.

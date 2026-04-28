@@ -7,6 +7,7 @@ use indicatif::MultiProgress;
 use tokio::task::JoinSet;
 use wado::StandaloneInstance;
 
+/// Total number of pipeline steps shown in step headers.
 const TOTAL_STEPS: u32 = 4;
 
 /// Stops the Neo4J container and commits its data volume into a tagged image.
@@ -88,6 +89,7 @@ async fn cleanup_neo4j_and_network(neo4j: &Neo4JContainer, network: &str) -> Vec
     ]
 }
 
+/// Reports the outcome of a single resource cleanup operation via the progress bar.
 fn cleanup_resource(name: &str, result: anyhow::Result<()>) -> CommandStatus {
     let progress = Progress::new(name);
     match result {

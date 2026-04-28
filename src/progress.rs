@@ -5,13 +5,14 @@ use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use std::time::Duration;
 use tokio::time::Instant;
 
+/// Column width for left-aligning progress bar names.
 const NAME_WIDTH: usize = 30;
 
-static WRENCH: Emoji<'_, '_> = Emoji("\u{1f527}  ", "");
-static MAG: Emoji<'_, '_> = Emoji("\u{1f50d}  ", "");
-static PACKAGE: Emoji<'_, '_> = Emoji("\u{1f4e6}  ", "");
-static BROOM: Emoji<'_, '_> = Emoji("\u{1f9f9}  ", "");
-static SPARKLE: Emoji<'_, '_> = Emoji("\u{2728}  ", ":-)  ");
+static WRENCH: Emoji<'_, '_> = Emoji("\u{1f527}  ", "");   // step 1: prepare
+static MAG: Emoji<'_, '_> = Emoji("\u{1f50d}  ", "");      // step 2: analyze
+static PACKAGE: Emoji<'_, '_> = Emoji("\u{1f4e6}  ", "");   // step 3: build
+static BROOM: Emoji<'_, '_> = Emoji("\u{1f9f9}  ", "");     // step 4: cleanup
+static SPARKLE: Emoji<'_, '_> = Emoji("\u{2728}  ", ":-)  "); // done
 
 /// Prints a numbered step header with an emoji prefix (e.g. `[1/4] wrench Preparing...`).
 pub fn step_header(step: u32, total: u32, description: &str) {
@@ -131,6 +132,7 @@ impl Progress {
         progress
     }
 
+    /// Creates a braille-style spinner progress bar.
     fn spinner() -> ProgressBar {
         ProgressBar::new_spinner().with_style(
             ProgressStyle::default_spinner()
@@ -143,6 +145,7 @@ impl Progress {
         )
     }
 
+    /// Returns the style used when a spinner has finished (no tick animation).
     fn finished_style() -> ProgressStyle {
         ProgressStyle::default_spinner()
             .template("  {wide_msg}")

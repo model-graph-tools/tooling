@@ -1,38 +1,29 @@
 //! CLI entry point and subcommand dispatch for `mgt`.
 
-mod analyze;
 mod app;
 mod args;
-mod browse;
+mod command;
 mod completion;
-mod completions;
 mod constants;
 mod container;
 mod download;
 mod feature_pack;
-mod images;
 mod label;
 mod neo4j;
 mod progress;
-mod ps;
 mod source;
-mod start;
-mod stop;
 
-use crate::analyze::analyze;
 use crate::args::{source_argument, sources_argument};
-use crate::browse::browse;
-use crate::images::images;
+use crate::command::{
+    analyze, browse, completions, feature_packs_cmd, images, ps, start, stop, versions,
+};
 use crate::completion::{complete_multiple_identifiers, complete_single_identifier};
-use crate::completions::completions;
-use crate::ps::ps;
 use crate::source::Source;
-use crate::start::start;
-use crate::stop::stop;
 use anyhow::Result;
 use app::build_app;
 use clap_complete::engine::ArgValueCompleter;
 
+/// Builds the full CLI command tree with value parsers and tab-completion wired up.
 fn build_app_full() -> clap::Command {
     build_app()
         .mut_subcommand("analyze", |sub_cmd| {
@@ -75,6 +66,14 @@ async fn main() -> Result<()> {
             let sources = m.get_one::<Vec<Source>>("identifier");
             stop(sources.map(|v| v.as_slice()), all).await
         }
+        Some(("versions", _)) => {
+            versions();
+            Ok(())
+        }
+        Some(("feature-packs", _)) => {
+            feature_packs_cmd();
+            Ok(())
+        }
         Some(("images", m)) => {
             let wildfly = m.get_flag("wildfly");
             let feature_packs = m.get_flag("feature-packs");
@@ -94,10 +93,12 @@ async fn main() -> Result<()> {
 
 // ------------------------------------------------------ validation
 
+/// Clap value parser that converts a CLI string into a single [`Source`].
 fn parse_source(input: &str) -> Result<Source, String> {
     Source::parse(input).map_err(|err| err.to_string())
 }
 
+/// Clap value parser that converts a comma-separated or range string into a list of [`Source`]s.
 fn parse_source_list(input: &str) -> Result<Vec<Source>, String> {
     Source::parse_list(input).map_err(|err| err.to_string())
 }

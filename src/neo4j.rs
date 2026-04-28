@@ -4,9 +4,13 @@ use crate::container::run_container_cmd;
 use crate::progress::Progress;
 use crate::source::Source;
 
+/// Neo4J Docker image version tag used for the base image.
 pub static NEO4J_VERSION: &str = "5.26.12-community";
+
+/// Neo4J Docker image repository.
 pub static NEO4J_IMAGE: &str = "docker.io/neo4j";
 
+/// Dockerfile template for building a Neo4J image with pre-populated databases.
 const DOCKERFILE_TEMPLATE: &str = r#"ARG NEO4J_VERSION=5.26
 FROM neo4j:${NEO4J_VERSION}
 COPY --chown=neo4j:neo4j databases /data/databases
@@ -140,6 +144,7 @@ pub struct RunningNeo4JContainer {
 
 // ------------------------------------------------------ helper
 
+/// Copies a directory from a running container to a local destination path.
 async fn copy_from_container(
     container: &str,
     src: &str,

@@ -17,6 +17,7 @@ use indicatif::MultiProgress;
 use std::path::PathBuf;
 use tokio::task::JoinSet;
 
+/// Total number of pipeline steps shown in step headers.
 const TOTAL_STEPS: u32 = 4;
 
 /// Orchestrates the feature pack analysis pipeline: download doc-zip, start

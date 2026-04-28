@@ -28,6 +28,10 @@ pub fn complete_multiple_identifiers(current: &OsStr) -> Vec<CompletionCandidate
         .collect()
 }
 
+/// Computes completion suggestions for the current input token.
+///
+/// Returns `(prefix, token, suggestions)` where prefix is everything before
+/// the current token (e.g. `"34,"`) and token is the active input segment.
 fn find_suggestions(parameter: Option<&str>) -> (String, String, Vec<String>) {
     let (prefix, token) = parse_prefix_token(parameter);
 
@@ -56,10 +60,12 @@ fn find_suggestions(parameter: Option<&str>) -> (String, String, Vec<String>) {
     (prefix.to_string(), out_token.to_string(), suggestions)
 }
 
+/// Returns all feature pack identifiers as completion candidates.
 fn feature_pack_completions() -> Vec<String> {
     all_feature_pack_identifiers()
 }
 
+/// Splits a comma-separated parameter into the already-completed prefix and the active token.
 fn parse_prefix_token(parameter: Option<&str>) -> (&str, &str) {
     match parameter {
         Some(param) => match param.rfind(',') {
@@ -71,10 +77,12 @@ fn parse_prefix_token(parameter: Option<&str>) -> (&str, &str) {
     }
 }
 
+/// Parses a WildFly version string into a semver `Version`.
 fn parse_version(input: &str) -> Option<Version> {
     WildFlyContainer::version(input).ok().map(|wfc| wfc.version)
 }
 
+/// Returns all WildFly versions strictly after `start` as simple version strings.
 fn versions_after(start: &Version) -> Vec<String> {
     all_versions()
         .iter()
@@ -89,6 +97,7 @@ fn versions_after(start: &Version) -> Vec<String> {
         .collect()
 }
 
+/// Suggests range-end completions for the text after `..` in a range expression.
 fn suggest_after_dots(after_dots: &str, start_after: &Version) -> Vec<String> {
     if WildFlyContainer::version(after_dots).is_ok() {
         return vec![];
@@ -120,14 +129,17 @@ fn suggest_after_dots(after_dots: &str, start_after: &Version) -> Vec<String> {
     }
 }
 
+/// Returns all known WildFly versions as semver `Version` values.
 fn all_versions() -> Vec<Version> {
     VERSIONS.values().map(|wfc| wfc.version.clone()).collect()
 }
 
+/// Returns all known WildFly versions as simple display strings (e.g. `34`, `26.1`).
 fn all_simple_versions() -> Vec<String> {
     all_versions().iter().map(simple_version).collect()
 }
 
+/// Formats a version as `major` or `major.minor` (omits `.0`).
 fn simple_version(version: &Version) -> String {
     if version.minor == 0 {
         format!("{}", version.major)

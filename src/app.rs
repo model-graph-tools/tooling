@@ -4,6 +4,7 @@ use clap::builder::Styles;
 use clap::builder::styling::{AnsiColor, Effects};
 use clap::{Arg, ArgAction, Command, crate_name, crate_version};
 
+/// Builds the base clap `Command` tree with all subcommands and arguments.
 pub fn build_app() -> Command {
     Command::new(crate_name!())
         .version(crate_version!())
@@ -41,6 +42,14 @@ pub fn build_app() -> Command {
                 .long("all")
                 .action(ArgAction::SetTrue)
                 .help("Stop all running Neo4J model DB containers")))
+
+        // versions
+        .subcommand(Command::new("versions")
+            .about("List all supported WildFly versions"))
+
+        // feature-packs
+        .subcommand(Command::new("feature-packs")
+            .about("List all supported feature packs"))
 
         // images
         .subcommand(Command::new("images")

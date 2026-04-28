@@ -21,6 +21,7 @@ use tokio::task::JoinSet;
 use wado::{AdminContainer, Ports, ServerType, StandaloneInstance};
 use wildfly_container_versions::WildFlyContainer;
 
+/// Total number of pipeline steps shown in step headers.
 const TOTAL_STEPS: u32 = 4;
 
 /// A WildFly server configuration to analyze.
@@ -162,6 +163,7 @@ async fn prepare_environment(
     analyzer_jar.ok_or_else(|| anyhow!("Analyzer download task did not produce a result"))
 }
 
+/// Discriminates results from the parallel environment preparation tasks.
 enum PrepareResult {
     Analyzer(PathBuf),
     WildFly,

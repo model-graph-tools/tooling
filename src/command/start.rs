@@ -55,6 +55,7 @@ pub async fn start(sources: &[Source]) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Starts a single Neo4J container from a pre-built image and waits for it to become healthy.
 async fn start_neo4j(neo4j: &Neo4JContainer, progress: &Progress) -> anyhow::Result<()> {
     progress.show_progress("starting container...");
     let mut cmd = container_command()?;

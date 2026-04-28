@@ -9,6 +9,7 @@ use comfy_table::{Cell, Color, ContentArrangement, Table};
 use console::style;
 use wildfly_container_versions::VERSIONS;
 
+/// A single row in the images table, tracking local availability and usage.
 struct ImageEntry {
     display_name: String,
     type_name: &'static str,
@@ -17,6 +18,7 @@ struct ImageEntry {
     in_use: bool,
 }
 
+/// Lists all available Neo4J model DB images, showing local availability and running status.
 pub async fn images(wildfly_only: bool, feature_packs_only: bool) -> anyhow::Result<()> {
     verify_container_command()?;
 

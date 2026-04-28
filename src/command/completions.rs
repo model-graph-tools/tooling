@@ -9,6 +9,7 @@ use std::process::Command;
 use anyhow::{Context, Result, bail};
 use clap::ArgMatches;
 
+/// Shells for which completion scripts can be generated.
 const SUPPORTED_SHELLS: &[&str] = &["bash", "zsh", "fish", "elvish", "powershell"];
 
 /// Generates or installs shell completions for the detected or specified shell.
@@ -33,6 +34,7 @@ pub fn completions(matches: &ArgMatches) -> Result<()> {
     }
 }
 
+/// Auto-detects the current shell from `$SHELL` or `$PSModulePath`, defaulting to bash.
 fn detect_shell() -> &'static str {
     if let Ok(shell) = env::var("SHELL") {
         if shell.contains("fish") {
@@ -51,6 +53,7 @@ fn detect_shell() -> &'static str {
     "bash"
 }
 
+/// Generates a completion script by re-invoking the binary with `COMPLETE=<shell>`.
 fn generate_script(shell: &str) -> Result<Vec<u8>> {
     let exe = env::current_exe().with_context(|| "Could not determine executable path")?;
     let output = Command::new(&exe)
@@ -67,6 +70,7 @@ fn generate_script(shell: &str) -> Result<Vec<u8>> {
     Ok(output.stdout)
 }
 
+/// Prints the completion script to stdout.
 fn print_completions(shell: &str) -> Result<()> {
     let script = generate_script(shell)?;
     io::stdout()
@@ -75,6 +79,7 @@ fn print_completions(shell: &str) -> Result<()> {
     Ok(())
 }
 
+/// Writes the completion script to the shell's standard completion directory.
 fn install_completions(shell: &str) -> Result<()> {
     let script = generate_script(shell)?;
     let path = completion_path(shell)?;
@@ -91,6 +96,7 @@ fn install_completions(shell: &str) -> Result<()> {
     Ok(())
 }
 
+/// Returns the standard filesystem path for installing completions for the given shell.
 fn completion_path(shell: &str) -> Result<PathBuf> {
     let home = home_dir().with_context(|| "Could not determine home directory")?;
     match shell {
@@ -103,12 +109,14 @@ fn completion_path(shell: &str) -> Result<PathBuf> {
     }
 }
 
+/// Returns the user's home directory from `$HOME` or `$USERPROFILE`.
 fn home_dir() -> Option<PathBuf> {
     env::var_os("HOME")
         .or_else(|| env::var_os("USERPROFILE"))
         .map(PathBuf::from)
 }
 
+/// Prints shell-specific instructions for activating the installed completions.
 fn print_post_install_instructions(shell: &str) {
     match shell {
         "fish" => {

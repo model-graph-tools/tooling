@@ -20,7 +20,10 @@ use tokio::io::AsyncBufReadExt;
 use crate::neo4j::Neo4JContainer;
 use wado::StandaloneInstance;
 
+/// Container image used to run the analyzer JAR.
 pub(super) const ANALYZER_IMAGE: &str = "eclipse-temurin:25-jre";
+
+/// Maximum number of lines kept in the error ring buffer for failure diagnostics.
 const ERROR_BUFFER_CAPACITY: usize = 20;
 
 /// Downloads the analyzer JAR to a temporary directory.
@@ -213,6 +216,7 @@ async fn stream_output(
     Ok(())
 }
 
+/// Appends a line to the ring buffer, evicting the oldest entry if at capacity.
 fn append_line(buffer: &mut VecDeque<String>, line: &str) {
     if buffer.len() >= ERROR_BUFFER_CAPACITY {
         buffer.pop_front();
@@ -220,6 +224,7 @@ fn append_line(buffer: &mut VecDeque<String>, line: &str) {
     buffer.push_back(line.to_string());
 }
 
+/// Prints the last few lines from the error buffer and a pointer to the full log file.
 fn print_errors(buffer: &VecDeque<String>, log_path: &Path) {
     if buffer.is_empty() {
         return;
@@ -231,6 +236,7 @@ fn print_errors(buffer: &VecDeque<String>, log_path: &Path) {
     println!("    {} {}", style("full log:").dim(), log_path.display());
 }
 
+/// Extracts the management resource path from an analyzer log line (e.g. `/subsystem=elytron`).
 fn parse_analyzer_resource(line: &str) -> Option<&str> {
     let marker = "Read /";
     let pos = line.find(marker)?;
