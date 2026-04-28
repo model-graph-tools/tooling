@@ -10,6 +10,7 @@ mod constants;
 mod container;
 mod download;
 mod feature_pack;
+mod images;
 mod label;
 mod neo4j;
 mod progress;
@@ -21,6 +22,7 @@ mod stop;
 use crate::analyze::analyze;
 use crate::args::{source_argument, sources_argument};
 use crate::browse::browse;
+use crate::images::images;
 use crate::completion::{complete_multiple_identifiers, complete_single_identifier};
 use crate::completions::completions;
 use crate::ps::ps;
@@ -72,6 +74,11 @@ async fn main() -> Result<()> {
             let all = m.get_flag("all");
             let sources = m.get_one::<Vec<Source>>("identifier");
             stop(sources.map(|v| v.as_slice()), all).await
+        }
+        Some(("images", m)) => {
+            let wildfly = m.get_flag("wildfly");
+            let feature_packs = m.get_flag("feature-packs");
+            images(wildfly, feature_packs).await
         }
         Some(("ps", _)) => ps().await,
         Some(("browse", m)) => {

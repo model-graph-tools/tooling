@@ -156,6 +156,11 @@ pub fn known_versions(shortcut: &str) -> Vec<&'static str> {
         .collect()
 }
 
+/// Returns all registered feature packs.
+pub fn all_feature_packs() -> Vec<FeaturePack> {
+    FEATURE_PACKS.values().cloned().collect()
+}
+
 /// Returns all identifiers: shortcuts and versioned forms (e.g. `ai`, `ai:0.9.0`).
 pub fn all_feature_pack_identifiers() -> Vec<String> {
     let mut ids: Vec<String> = known_shortcuts().iter().map(|s| s.to_string()).collect();

@@ -19,11 +19,6 @@ impl Label {
         format!("label={}", self.key())
     }
 
-    /// Returns a `--filter` argument matching this label with a specific value.
-    pub fn filter_value(&self, value: &str) -> String {
-        format!("label={}={}", self.key(), value)
-    }
-
     /// Returns a `--label` argument for `container run` (e.g. `key=value`).
     pub fn run_arg(&self, value: &str) -> String {
         format!("{}={}", self.key(), value)
@@ -59,14 +54,6 @@ mod tests {
         assert_eq!(
             Label::Identifier.filter(),
             "label=org.wildfly.mgt.identifier"
-        );
-    }
-
-    #[test]
-    fn filter_with_value() {
-        assert_eq!(
-            Label::Identifier.filter_value("340"),
-            "label=org.wildfly.mgt.identifier=340"
         );
     }
 

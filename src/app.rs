@@ -42,6 +42,20 @@ pub fn build_app() -> Command {
                 .action(ArgAction::SetTrue)
                 .help("Stop all running Neo4J model DB containers")))
 
+        // images
+        .subcommand(Command::new("images")
+            .about("List all available Neo4J model DB images")
+            .arg(Arg::new("wildfly")
+                .short('w')
+                .long("wildfly")
+                .action(ArgAction::SetTrue)
+                .help("Show only WildFly versions"))
+            .arg(Arg::new("feature-packs")
+                .short('f')
+                .long("feature-packs")
+                .action(ArgAction::SetTrue)
+                .help("Show only feature packs")))
+
         // ps
         .subcommand(Command::new("ps")
             .about("List running Neo4J model DB containers"))

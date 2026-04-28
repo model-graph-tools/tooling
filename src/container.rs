@@ -5,6 +5,7 @@ use crate::neo4j::{Neo4JContainer, Neo4JImage, RunningNeo4JContainer};
 use crate::progress::Progress;
 use crate::source::Source;
 use anyhow::{Error, bail};
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::time::Duration;
@@ -152,6 +153,27 @@ pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContai
             .cmp(&b.container.image.source.port_offset())
     });
     Ok(containers)
+}
+
+/// Returns the names of all locally available container images.
+pub async fn local_image_names() -> anyhow::Result<HashSet<String>> {
+    let mut cmd = container_command()?;
+    cmd.arg("images")
+        .arg("--format")
+        .arg("{{.Repository}}:{{.Tag}}")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let output = cmd.output().await?;
+    if !output.status.success() {
+        bail!(
+            "Failed to list images: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(String::from)
+        .collect())
 }
 
 const MAX_HEALTHCHECK_ATTEMPTS: u32 = 30;
