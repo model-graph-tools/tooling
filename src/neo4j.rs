@@ -1,7 +1,8 @@
 //! Neo4J container, image, and port management.
 
 use crate::constants::{
-    MODEL_GRAPH_TOOLS_REPOSITORY, NEO4J_IMAGE, NEO4J_VERSION, PLATFORMS, model_db_dockerfile,
+    MODEL_GRAPH_TOOLS_REPOSITORY, NEO4J_IMAGE, NEO4J_VERSION, PLATFORMS, SCHEMA_SVG_URL,
+    WELCOME_URL,
 };
 use crate::container::{container_command, run_container_cmd};
 use crate::progress::Progress;
@@ -169,4 +170,66 @@ async fn copy_from_container(
         &format!("Failed to copy {src} from container"),
     )
     .await
+}
+
+/// Returns a Dockerfile for building a Neo4J image with pre-populated databases
+/// and an nginx reverse proxy that serves the welcome page from the same origin.
+fn model_db_dockerfile(source_name: &str) -> String {
+    format!(
+        r#"FROM neo4j:{NEO4J_VERSION}
+
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends nginx curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /var/www/html /var/lib/nginx/body /var/lib/nginx/proxy \
+        /var/lib/nginx/fastcgi /var/lib/nginx/uwsgi /var/lib/nginx/scgi \
+        /var/log/nginx /run \
+    && chown -R neo4j:neo4j /var/www/html /var/lib/nginx /var/log/nginx /run \
+    && curl -fsSL -o /var/www/html/welcome.html \
+       {WELCOME_URL} \
+    && curl -fsSL -o /var/www/html/schema.svg \
+       {SCHEMA_SVG_URL} \
+    && sed -i 's|{{{{SOURCE_NAME}}}}|{source_name}|g' /var/www/html/welcome.html
+
+RUN printf 'pid /run/nginx.pid;\n\
+error_log /var/log/nginx/error.log;\n\
+events {{\n\
+    worker_connections 64;\n\
+}}\n\
+http {{\n\
+    include /etc/nginx/mime.types;\n\
+    access_log /var/log/nginx/access.log;\n\
+    client_body_temp_path /var/lib/nginx/body;\n\
+    proxy_temp_path /var/lib/nginx/proxy;\n\
+    server {{\n\
+        listen 7474;\n\
+        location = /welcome.html {{\n\
+            root /var/www/html;\n\
+        }}\n\
+        location = /schema.svg {{\n\
+            root /var/www/html;\n\
+        }}\n\
+        location / {{\n\
+            proxy_pass http://localhost:7475;\n\
+            proxy_http_version 1.1;\n\
+            proxy_set_header Upgrade $http_upgrade;\n\
+            proxy_set_header Connection "upgrade";\n\
+            proxy_set_header Host $host;\n\
+        }}\n\
+    }}\n\
+}}\n' > /etc/nginx/nginx.conf
+
+RUN printf '#!/bin/bash\nnginx -c /etc/nginx/nginx.conf\nexec /startup/docker-entrypoint.sh neo4j\n' \
+    > /entrypoint.sh && chmod +x /entrypoint.sh
+
+USER neo4j
+COPY --chown=neo4j:neo4j databases /data/databases
+COPY --chown=neo4j:neo4j transactions /data/transactions
+ENV NEO4J_AUTH=none
+ENV NEO4J_server_databases_default__to__read__only=true
+ENV NEO4J_server_http_listen__address=:7475
+ENTRYPOINT ["/entrypoint.sh"]
+"#
+    )
 }
