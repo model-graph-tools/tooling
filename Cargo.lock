@@ -2238,9 +2238,9 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "wado"
-version = "0.4.12"
+version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a5d5e30e05c86ea78faa77ca83bbe97192d27ee4ee81b721aa2f80c6a600a6f"
+checksum = "274d6ba16cf1475d185b4f13961b50e949e524b3cf76d70dd0b741d28957db94"
 dependencies = [
  "anyhow",
  "clap",
