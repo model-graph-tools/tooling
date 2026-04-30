@@ -1,7 +1,6 @@
 //! Lists running Neo4J model DB containers in a table.
 
 use crate::container::{running_neo4j_containers, verify_container_command};
-use crate::source::Source;
 use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Cell, Color, ContentArrangement, Table};
 
@@ -22,10 +21,7 @@ pub async fn ps() -> anyhow::Result<()> {
         .set_header(vec!["Source", "Name", "Ports", "Status", "ID"]);
 
     for running in &containers {
-        let source_name = match &running.container.image.source {
-            Source::WildFly(wc) => format!("WildFly {}", wc.display_version()),
-            Source::FeaturePack(fp) => fp.display_name(),
-        };
+        let source_name = running.container.image.item.full_name();
         let ports = format!(
             "bolt: {}, http: {}",
             running.container.ports.bolt, running.container.ports.http

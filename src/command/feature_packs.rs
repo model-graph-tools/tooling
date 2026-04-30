@@ -1,6 +1,6 @@
 //! Lists all supported feature packs.
 
-use crate::feature_pack::all_feature_packs;
+use crate::registry::packs_registry;
 use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Cell, Color, ContentArrangement, Table};
 
@@ -12,12 +12,12 @@ pub fn feature_packs_cmd() {
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec!["Shortcut", "Version", "Group ID", "Artifact ID"]);
 
-    for fp in all_feature_packs() {
+    for fp in packs_registry().all() {
         table.add_row(vec![
-            Cell::new(fp.shortcut).fg(Color::DarkMagenta),
-            Cell::new(fp.version).fg(Color::DarkCyan),
-            Cell::new(fp.group_id).fg(Color::AnsiValue(248)),
-            Cell::new(fp.artifact_id).fg(Color::AnsiValue(248)),
+            Cell::new(&fp.shortcut).fg(Color::DarkMagenta),
+            Cell::new(&fp.version).fg(Color::DarkCyan),
+            Cell::new(&fp.group_id).fg(Color::AnsiValue(248)),
+            Cell::new(&fp.artifact_id).fg(Color::AnsiValue(248)),
         ]);
     }
 

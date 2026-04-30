@@ -7,54 +7,54 @@ mod completion;
 mod constants;
 mod container;
 mod download;
-mod feature_pack;
 mod label;
 mod neo4j;
 mod progress;
-mod source;
+mod registry;
 
-use crate::args::{source_argument, sources_argument};
+use crate::args::{meta_item_argument, meta_items_argument};
 use crate::command::{
     analyze, browse, completions, feature_packs_cmd, images, ps, push, start, stop, versions,
 };
 use crate::completion::{complete_multiple_identifiers, complete_single_identifier};
-use crate::source::Source;
+use crate::registry::{images_registry, init_registries, packs_registry};
 use anyhow::Result;
 use app::build_app;
 use clap_complete::engine::ArgValueCompleter;
+use wildfly_meta::{MetaItem, ParseOptions, parse_meta_item, parse_meta_items};
 
 /// Extends [`build_app()`] with value parsers and tab-completion handlers.
 fn build_app_full() -> clap::Command {
     build_app()
         .mut_subcommand("analyze", |sub_cmd| {
             sub_cmd.mut_arg("identifier", |arg| {
-                arg.value_parser(parse_source)
+                arg.value_parser(parse_single)
                     .add(ArgValueCompleter::new(complete_single_identifier))
             })
         })
         .mut_subcommand("push", |sub_cmd| {
             sub_cmd
                 .mut_arg("identifier", |arg| {
-                    arg.value_parser(parse_source_list)
+                    arg.value_parser(parse_list)
                         .add(ArgValueCompleter::new(complete_multiple_identifiers))
                 })
                 .mut_arg("chunks", |arg| arg.value_parser(clap::value_parser!(u16)))
         })
         .mut_subcommand("start", |sub_cmd| {
             sub_cmd.mut_arg("identifier", |arg| {
-                arg.value_parser(parse_source_list)
+                arg.value_parser(parse_list)
                     .add(ArgValueCompleter::new(complete_multiple_identifiers))
             })
         })
         .mut_subcommand("stop", |sub_cmd| {
             sub_cmd.mut_arg("identifier", |arg| {
-                arg.value_parser(parse_source_list)
+                arg.value_parser(parse_list)
                     .add(ArgValueCompleter::new(complete_multiple_identifiers))
             })
         })
         .mut_subcommand("browse", |sub_cmd| {
             sub_cmd.mut_arg("identifier", |arg| {
-                arg.value_parser(parse_source_list)
+                arg.value_parser(parse_list)
                     .add(ArgValueCompleter::new(complete_multiple_identifiers))
             })
         })
@@ -62,21 +62,23 @@ fn build_app_full() -> clap::Command {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    init_registries()?;
+
     clap_complete::CompleteEnv::with_factory(build_app_full).complete();
 
     let matches = build_app_full().get_matches();
 
     match matches.subcommand() {
-        Some(("analyze", m)) => analyze(&source_argument(m)).await,
+        Some(("analyze", m)) => analyze(&meta_item_argument(m)).await,
         Some(("push", m)) => {
             let chunk_size = m.get_one::<u16>("chunks").copied().unwrap_or(0);
-            push(&sources_argument(m), chunk_size).await
+            push(&meta_items_argument(m), chunk_size).await
         }
-        Some(("start", m)) => start(&sources_argument(m)).await,
+        Some(("start", m)) => start(&meta_items_argument(m)).await,
         Some(("stop", m)) => {
             let all = m.get_flag("all");
-            let sources = m.get_one::<Vec<Source>>("identifier");
-            stop(sources.map(|v| v.as_slice()), all).await
+            let items = m.get_one::<Vec<MetaItem>>("identifier");
+            stop(items.map(|v| v.as_slice()), all).await
         }
         Some(("versions", _)) => {
             versions();
@@ -93,8 +95,8 @@ async fn main() -> Result<()> {
         }
         Some(("ps", _)) => ps().await,
         Some(("browse", m)) => {
-            for source in &sources_argument(m) {
-                browse(source)?;
+            for item in &meta_items_argument(m) {
+                browse(item)?;
             }
             Ok(())
         }
@@ -105,12 +107,19 @@ async fn main() -> Result<()> {
 
 // ------------------------------------------------------ validation
 
-/// Clap value parser that converts a CLI string into a single [`Source`].
-fn parse_source(input: &str) -> Result<Source, String> {
-    Source::parse(input).map_err(|err| err.to_string())
+/// Clap value parser that converts a CLI string into a single [`MetaItem`].
+fn parse_single(input: &str) -> Result<MetaItem, String> {
+    parse_meta_item(input, images_registry(), packs_registry()).map_err(|err| err.to_string())
 }
 
-/// Clap value parser that converts a comma-separated or range string into a list of [`Source`]s.
-fn parse_source_list(input: &str) -> Result<Vec<Source>, String> {
-    Source::parse_list(input).map_err(|err| err.to_string())
+/// Clap value parser that converts a comma-separated or range string into a list of [`MetaItem`]s.
+fn parse_list(input: &str) -> Result<Vec<MetaItem>, String> {
+    parse_meta_items(
+        input,
+        images_registry(),
+        packs_registry(),
+        &ParseOptions::all(),
+        &ParseOptions::none(),
+    )
+    .map_err(|err| err.to_string())
 }

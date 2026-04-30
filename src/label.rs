@@ -9,7 +9,7 @@ pub enum Label {
 }
 
 impl Label {
-    /// Returns the fully-qualified OCI label key.
+    /// Returns the fully qualified OCI label key.
     pub fn key(&self) -> &'static str {
         match self {
             Label::Identifier => "org.wildfly.mgt.identifier",

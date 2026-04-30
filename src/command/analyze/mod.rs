@@ -17,26 +17,26 @@ mod runner;
 mod wildfly;
 
 use crate::progress::done;
-use crate::source::Source;
 use console::style;
 use tokio::time::Instant;
+use wildfly_meta::MetaItem;
 
 /// Entry point for the analysis pipeline.
 ///
 /// Dispatches to the WildFly or feature pack analysis path based on the
 /// source type and prints timing information on completion.
-pub async fn analyze(source: &Source) -> anyhow::Result<()> {
+pub async fn analyze(item: &MetaItem) -> anyhow::Result<()> {
     crate::container::verify_container_command()?;
 
     let instant = Instant::now();
     println!(
         "\n{}",
-        style(format!("Analyzing {}", source.display_name())).bold()
+        style(format!("Analyzing {}", item.short_name())).bold()
     );
 
-    match source {
-        Source::WildFly(wc) => wildfly::run_wildfly_analysis(wc, source).await?,
-        Source::FeaturePack(fp) => feature_pack::run_feature_pack_analysis(fp, source).await?,
+    match item {
+        MetaItem::Image(img) => wildfly::run_wildfly_analysis(img, item).await?,
+        MetaItem::FeaturePack(fp) => feature_pack::run_feature_pack_analysis(fp, item).await?,
     }
 
     done(instant);

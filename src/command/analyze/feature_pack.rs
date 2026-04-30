@@ -10,12 +10,12 @@ use crate::container::{create_network, network_name, pull_image};
 use crate::download::download_file;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{Progress, step_header};
-use crate::source::Source;
 use anyhow::anyhow;
 use console::style;
 use indicatif::MultiProgress;
 use std::path::PathBuf;
 use tokio::task::JoinSet;
+use wildfly_meta::{FeaturePack, MetaItem};
 
 /// Total number of pipeline steps shown in step headers.
 const TOTAL_STEPS: u32 = 4;
@@ -23,12 +23,12 @@ const TOTAL_STEPS: u32 = 4;
 /// Orchestrates the feature pack analysis pipeline: download doc-zip, start
 /// Neo4J, run analyzer, build image, and clean up.
 pub(super) async fn run_feature_pack_analysis(
-    fp: &crate::feature_pack::FeaturePack,
-    source: &Source,
+    fp: &FeaturePack,
+    item: &MetaItem,
 ) -> anyhow::Result<()> {
-    let neo4j_image = Neo4JImage::new(source);
+    let neo4j_image = Neo4JImage::new(item);
     let neo4j = Neo4JContainer::new(neo4j_image);
-    let network = network_name(source);
+    let network = network_name(item);
 
     create_network(&network).await?;
 
@@ -49,7 +49,7 @@ pub(super) async fn run_feature_pack_analysis(
         });
 
         let dl_progress =
-            Progress::join(&multi_progress, &format!("Download {}", fp.display_name()));
+            Progress::join(&multi_progress, &format!("Download {}", fp.short_name()));
         let url = fp.download_url();
         tasks.spawn(async move {
             let result = download_doc_zip(&url, &dl_progress).await;
@@ -84,7 +84,7 @@ pub(super) async fn run_feature_pack_analysis(
             doc_zip_path.ok_or_else(|| anyhow!("Doc-zip download did not produce a result"))?;
 
         step_header(2, TOTAL_STEPS, "Analyzing...");
-        let progress = Progress::new(&fp.display_name());
+        let progress = Progress::new(&fp.short_name());
         let result = run_doc_zip_analyzer(&doc_zip_path, &neo4j, &network, &progress).await;
         match &result {
             Ok(()) => progress.finish_success(Some("Done")),

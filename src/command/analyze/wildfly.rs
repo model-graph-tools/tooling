@@ -10,7 +10,6 @@ use crate::constants::analyzer_url;
 use crate::container::{container_command, create_network, healthcheck, network_name, pull_image};
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{Progress, step_header};
-use crate::source::Source;
 use anyhow::{anyhow, bail};
 use console::style;
 use indicatif::MultiProgress;
@@ -20,15 +19,24 @@ use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::LazyLock;
 use tokio::task::JoinSet;
-use wado::{AdminContainer, Ports, ServerType, StandaloneInstance};
-use wildfly_container_versions::WildFlyContainer;
+use wildfly_meta::{MetaItem, WildFlyImage};
 
 /// Total number of pipeline steps shown in step headers.
 const TOTAL_STEPS: u32 = 4;
 
+/// A WildFly instance used during analysis, replacing wado types.
+#[derive(Clone)]
+pub(super) struct AnalysisInstance {
+    pub image_ref: String,
+    pub identifier: u16,
+    pub name: String,
+    pub http_port: u16,
+    pub management_port: u16,
+}
+
 /// Per-version mapping of WildFly identifiers to their server configurations.
 ///
-/// Keyed by `WildFlyContainer.identifier` (e.g. `100` for 10.0, `261` for 26.1).
+/// Keyed by `WildFlyImage.identifier` (e.g. `100` for 10.0, `261` for 26.1).
 static CONFIGURATIONS: LazyLock<HashMap<u16, Vec<WildFlyConfiguration>>> = LazyLock::new(|| {
     let fha = || WildFlyConfiguration {
         config: "standalone-full-ha.xml",
@@ -84,9 +92,9 @@ struct WildFlyConfiguration {
 ///
 /// Looks up the version in the explicit mapping. Unknown/future versions
 /// fall back to both `standalone-full-ha.xml` and `standalone-microprofile.xml`.
-fn wildfly_configurations(wildfly_container: &WildFlyContainer) -> &'static [WildFlyConfiguration] {
+fn wildfly_configurations(image: &WildFlyImage) -> &'static [WildFlyConfiguration] {
     CONFIGURATIONS
-        .get(&wildfly_container.identifier)
+        .get(&image.identifier)
         .map(|v| v.as_slice())
         .unwrap_or(&DEFAULT_CONFIGURATIONS)
 }
@@ -94,31 +102,23 @@ fn wildfly_configurations(wildfly_container: &WildFlyContainer) -> &'static [Wil
 /// Orchestrates the full WildFly analysis pipeline: prepare environment,
 /// run analyzers, build Neo4J image, and clean up.
 pub(super) async fn run_wildfly_analysis(
-    wildfly_container: &WildFlyContainer,
-    source: &Source,
+    image: &WildFlyImage,
+    item: &MetaItem,
 ) -> anyhow::Result<()> {
-    let configs = wildfly_configurations(wildfly_container);
-    let admin_container = AdminContainer::new(wildfly_container.clone(), ServerType::Standalone);
-    let neo4j_image = Neo4JImage::new(source);
+    let configs = wildfly_configurations(image);
+    let neo4j_image = Neo4JImage::new(item);
     let neo4j = Neo4JContainer::new(neo4j_image);
-    let network = network_name(source);
+    let network = network_name(item);
 
-    let instances: Vec<StandaloneInstance> = configs
+    let instances: Vec<AnalysisInstance> = configs
         .iter()
         .enumerate()
-        .map(|(i, cfg)| {
-            let default_ports = Ports::default_ports(wildfly_container);
-            StandaloneInstance::new(
-                admin_container.clone(),
-                format!(
-                    "mgt-wado-sa-{}-{}",
-                    wildfly_container.identifier, cfg.suffix
-                ),
-                Ports {
-                    http: default_ports.http + i as u16,
-                    management: default_ports.management + i as u16,
-                },
-            )
+        .map(|(i, cfg)| AnalysisInstance {
+            image_ref: image.image_ref(),
+            identifier: image.identifier,
+            name: format!("mgt-wado-sa-{}-{}", image.identifier, cfg.suffix),
+            http_port: image.http_port() + i as u16,
+            management_port: image.management_port() + i as u16,
         })
         .collect();
 
@@ -142,7 +142,7 @@ pub(super) async fn run_wildfly_analysis(
 /// Prepares the environment by downloading the analyzer JAR, starting WildFly
 /// instances, and starting the Neo4J container — all in parallel.
 async fn prepare_environment(
-    instances: &[StandaloneInstance],
+    instances: &[AnalysisInstance],
     configs: &[WildFlyConfiguration],
     neo4j: &Neo4JContainer,
     network: &str,
@@ -151,7 +151,7 @@ async fn prepare_environment(
     let multi_progress = MultiProgress::new();
     let mut tasks = JoinSet::new();
 
-    let wf_image = instances[0].admin_container.image_name();
+    let wf_image = instances[0].image_ref.clone();
     let wf_progress = Progress::join(&multi_progress, "Wildfly image");
     tasks.spawn(async move {
         let result = pull_image(&wf_image, &wf_progress).await;
@@ -235,7 +235,7 @@ enum PrepareResult {
 /// The first configuration cleans the Neo4J database; subsequent
 /// configurations append to it.
 async fn run_analyzers(
-    instances: &[StandaloneInstance],
+    instances: &[AnalysisInstance],
     configs: &[WildFlyConfiguration],
     neo4j: &Neo4JContainer,
     network: &str,
@@ -259,7 +259,7 @@ async fn run_analyzers(
 
 /// Starts a WildFly container and waits for it to become healthy.
 async fn start_wildfly(
-    instance: &StandaloneInstance,
+    instance: &AnalysisInstance,
     configuration: &str,
     network: &str,
     progress: &Progress,
@@ -275,10 +275,10 @@ async fn start_wildfly(
         .arg("--network")
         .arg(network)
         .arg("--publish")
-        .arg(format!("{}:8080", instance.ports.http))
+        .arg(format!("{}:8080", instance.http_port))
         .arg("--publish")
-        .arg(format!("{}:9990", instance.ports.management))
-        .arg(instance.admin_container.image_name())
+        .arg(format!("{}:9990", instance.management_port))
+        .arg(&instance.image_ref)
         .args(["-c", configuration])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -292,7 +292,7 @@ async fn start_wildfly(
 
     progress.show_progress("Waiting for WildFly...");
     healthcheck(
-        &format!("http://localhost:{}", instance.ports.management),
+        &format!("http://localhost:{}", instance.management_port),
         progress,
     )
     .await?;
@@ -303,11 +303,19 @@ async fn start_wildfly(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::registry::init_registries;
+    use wildfly_meta::parse_wildfly_image;
+
+    fn init() {
+        let _ = init_registries();
+    }
 
     #[test]
     fn configs_old_version() {
-        let wc = WildFlyContainer::version("10").unwrap();
-        let configs = wildfly_configurations(&wc);
+        init();
+        let img =
+            parse_wildfly_image("10", crate::registry::images_registry()).unwrap();
+        let configs = wildfly_configurations(&img);
         assert_eq!(configs.len(), 1);
         assert_eq!(configs[0].config, "standalone-full-ha.xml");
         assert!(!configs[0].append);
@@ -315,8 +323,10 @@ mod tests {
 
     #[test]
     fn configs_new_version() {
-        let wc = WildFlyContainer::version("39").unwrap();
-        let configs = wildfly_configurations(&wc);
+        init();
+        let img =
+            parse_wildfly_image("39", crate::registry::images_registry()).unwrap();
+        let configs = wildfly_configurations(&img);
         assert_eq!(configs.len(), 2);
         assert_eq!(configs[0].config, "standalone-full-ha.xml");
         assert!(!configs[0].append);
@@ -326,21 +336,24 @@ mod tests {
 
     #[test]
     fn configs_boundary_version() {
-        let wc = WildFlyContainer::version("19").unwrap();
-        let configs = wildfly_configurations(&wc);
+        init();
+        let img =
+            parse_wildfly_image("19", crate::registry::images_registry()).unwrap();
+        let configs = wildfly_configurations(&img);
         assert_eq!(configs.len(), 2);
     }
 
     #[test]
     fn configs_below_boundary() {
-        let wc = WildFlyContainer::version("18").unwrap();
-        let configs = wildfly_configurations(&wc);
+        init();
+        let img =
+            parse_wildfly_image("18", crate::registry::images_registry()).unwrap();
+        let configs = wildfly_configurations(&img);
         assert_eq!(configs.len(), 1);
     }
 
     #[test]
     fn configs_unmapped_identifier_uses_default() {
-        // Identifier 999 is not in the CONFIGURATIONS map
         assert!(!CONFIGURATIONS.contains_key(&999));
         assert_eq!(DEFAULT_CONFIGURATIONS.len(), 2);
         assert_eq!(DEFAULT_CONFIGURATIONS[0].config, "standalone-full-ha.xml");

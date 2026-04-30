@@ -3,7 +3,7 @@
 use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage, RunningNeo4JContainer};
 use crate::progress::Progress;
-use crate::source::Source;
+use crate::registry::{images_registry, packs_registry};
 use anyhow::{Error, bail};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -12,6 +12,7 @@ use std::time::Duration;
 use tokio::process::Command;
 use tokio::time::sleep;
 use which::which;
+use wildfly_meta::{MetaItem, parse_meta_item};
 
 /// Verifies that `podman` or `docker` is available on PATH.
 pub fn verify_container_command() -> Result<PathBuf, Error> {
@@ -36,9 +37,9 @@ fn is_podman() -> bool {
     which("podman").is_ok()
 }
 
-/// Derives the container network name from a source identifier.
-pub fn network_name(source: &Source) -> String {
-    format!("mgt-network-{}", source.container_id())
+/// Derives the container network name from a meta item identifier.
+pub fn network_name(item: &MetaItem) -> String {
+    format!("mgt-network-{}", item.container_name())
 }
 
 /// Creates a container network, tolerating "already exists" errors.
@@ -133,8 +134,9 @@ pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContai
             let parts: Vec<&str> = line.splitn(4, '|').collect();
             if parts.len() == 4 {
                 let name = source_name_label.parse_value(parts[3])?;
-                let source = Source::parse(&name).ok()?;
-                let image = Neo4JImage::new(&source);
+                let item =
+                    parse_meta_item(&name, images_registry(), packs_registry()).ok()?;
+                let image = Neo4JImage::new(&item);
                 let container = Neo4JContainer::new(image);
                 Some(RunningNeo4JContainer {
                     container,
@@ -149,9 +151,9 @@ pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContai
     containers.sort_by(|a, b| {
         a.container
             .image
-            .source
+            .item
             .port_offset()
-            .cmp(&b.container.image.source.port_offset())
+            .cmp(&b.container.image.item.port_offset())
     });
     Ok(containers)
 }

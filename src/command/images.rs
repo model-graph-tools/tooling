@@ -1,13 +1,12 @@
 //! Lists all available Neo4J model DB images with local/in-use status.
 
 use crate::container::{local_image_names, running_neo4j_containers, verify_container_command};
-use crate::feature_pack::all_feature_packs;
 use crate::neo4j::Neo4JImage;
-use crate::source::Source;
+use crate::registry::{images_registry, packs_registry};
 use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Cell, Color, ContentArrangement, Table};
 use console::style;
-use wildfly_container_versions::VERSIONS;
+use wildfly_meta::MetaItem;
 
 /// A single row in the images table, tracking local availability and usage.
 struct ImageEntry {
@@ -29,11 +28,11 @@ pub async fn images(wildfly_only: bool, feature_packs_only: bool) -> anyhow::Res
     let mut entries: Vec<ImageEntry> = Vec::new();
 
     if show_wildfly {
-        for wc in VERSIONS.values() {
-            let source = Source::WildFly(wc.clone());
-            let image = Neo4JImage::new(&source);
+        for img in images_registry().all() {
+            let item = MetaItem::Image(img.clone());
+            let image = Neo4JImage::new(&item);
             entries.push(ImageEntry {
-                display_name: wc.display_version(),
+                display_name: img.short_name(),
                 type_name: "WildFly",
                 image_tag: image.image_tag(),
                 local: false,
@@ -43,11 +42,11 @@ pub async fn images(wildfly_only: bool, feature_packs_only: bool) -> anyhow::Res
     }
 
     if show_feature_packs {
-        for fp in all_feature_packs() {
-            let source = Source::FeaturePack(fp.clone());
-            let image = Neo4JImage::new(&source);
+        for fp in packs_registry().all() {
+            let item = MetaItem::FeaturePack(fp.clone());
+            let image = Neo4JImage::new(&item);
             entries.push(ImageEntry {
-                display_name: fp.display_name(),
+                display_name: fp.short_name(),
                 type_name: "Feature Pack",
                 image_tag: image.image_tag(),
                 local: false,

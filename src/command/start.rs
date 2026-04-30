@@ -4,19 +4,19 @@ use crate::container::{container_command, healthcheck, pull_image, verify_contai
 use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
-use crate::source::Source;
 use anyhow::bail;
 use console::style;
 use indicatif::MultiProgress;
 use std::process::Stdio;
 use tokio::task::JoinSet;
 use tokio::time::Instant;
+use wildfly_meta::MetaItem;
 
-/// Starts Neo4J containers for the given sources from their pre-built images.
-pub async fn start(sources: &[Source]) -> anyhow::Result<()> {
+/// Starts Neo4J containers for the given meta items from their pre-built images.
+pub async fn start(items: &[MetaItem]) -> anyhow::Result<()> {
     verify_container_command()?;
 
-    let count = sources.len();
+    let count = items.len();
     let noun = if count == 1 {
         "container"
     } else {
@@ -31,13 +31,14 @@ pub async fn start(sources: &[Source]) -> anyhow::Result<()> {
     let multi_progress = MultiProgress::new();
     let mut tasks = JoinSet::new();
 
-    for source in sources {
-        let image = Neo4JImage::new(source);
+    for item in items {
+        let image = Neo4JImage::new(item);
         let neo4j = Neo4JContainer::new(image);
-        let display = source.display_name();
+        let display = item.short_name();
+        let item = item.clone();
         let progress = Progress::join(&multi_progress, &display);
         tasks.spawn(async move {
-            let result = start_neo4j(&neo4j, &progress).await;
+            let result = start_neo4j(&neo4j, &item, &progress).await;
             match &result {
                 Ok(()) => {
                     progress
@@ -56,7 +57,11 @@ pub async fn start(sources: &[Source]) -> anyhow::Result<()> {
 }
 
 /// Starts a single Neo4J container from a pre-built image and waits for it to become healthy.
-async fn start_neo4j(neo4j: &Neo4JContainer, progress: &Progress) -> anyhow::Result<()> {
+async fn start_neo4j(
+    neo4j: &Neo4JContainer,
+    item: &MetaItem,
+    progress: &Progress,
+) -> anyhow::Result<()> {
     let _ = pull_image(&neo4j.image.image_tag(), progress).await;
 
     progress.show_progress("Starting container...");
@@ -78,11 +83,11 @@ async fn start_neo4j(neo4j: &Neo4JContainer, progress: &Progress) -> anyhow::Res
             neo4j.ports.http
         ))
         .arg("--label")
-        .arg(Label::Identifier.run_arg(&neo4j.image.source.container_id()))
+        .arg(Label::Identifier.run_arg(&item.container_name()))
         .arg("--label")
-        .arg(Label::SourceType.run_arg(neo4j.image.source.source_type()))
+        .arg(Label::SourceType.run_arg(item.kind()))
         .arg("--label")
-        .arg(Label::SourceName.run_arg(&neo4j.image.source.source_name()))
+        .arg(Label::SourceName.run_arg(&item.expression()))
         .arg(neo4j.image.image_tag())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());

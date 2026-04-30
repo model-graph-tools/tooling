@@ -32,8 +32,7 @@ The codebase is organized into top-level modules and a `command/` submodule tree
 - **`constants.rs`** — Analyzer version/URL, Neo4J version/image, and Dockerfile generation.
 - **`container.rs`** — Container runtime abstraction. Prefers `podman`, falls back to `docker`.
 - **`neo4j.rs`** — Neo4J container, image, and port management.
-- **`source.rs`** — Unified abstraction over WildFly versions and feature packs as analysis sources.
-- **`feature_pack.rs`** — Feature pack definitions (name, shortcut, GAV coordinates).
+- **`registry.rs`** — Global `OnceLock`-based access to `wildfly_meta` registries for clap parsers.
 - **`download.rs`** — HTTP download helpers (analyzer JAR).
 - **`progress.rs`** — Progress bar and status display utilities.
 - **`completion.rs`** — Dynamic shell completion logic for identifiers.
@@ -60,7 +59,7 @@ The codebase is organized into top-level modules and a `command/` submodule tree
 
 ## Key Dependencies
 
-- **`wado`** / **`wildfly_container_versions`** — WildFly container abstractions (images, ports, version parsing).
+- **`wildfly_meta`** — WildFly image and feature pack metadata (registries, version parsing, completions). Loaded from TOML files in `~/.config/wildfly-meta/`.
 - **`clap`** / **`clap_complete`** — CLI argument parsing with dynamic shell completions.
 - **`tokio`** — Async runtime for concurrent container orchestration.
 - **`reqwest`** — Downloads the analyzer JAR from GitHub releases.

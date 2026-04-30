@@ -2,19 +2,19 @@
 
 use crate::container::verify_container_command;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
-use crate::source::Source;
 use console::style;
+use wildfly_meta::MetaItem;
 
-/// Opens the Neo4J browser UI in the default web browser for the given source.
-pub fn browse(source: &Source) -> anyhow::Result<()> {
+/// Opens the Neo4J browser UI in the default web browser for the given meta item.
+pub fn browse(item: &MetaItem) -> anyhow::Result<()> {
     verify_container_command()?;
 
-    let image = Neo4JImage::new(source);
+    let image = Neo4JImage::new(item);
     let neo4j = Neo4JContainer::new(image);
     let url = format!("http://localhost:{}/browser", neo4j.ports.http);
     println!(
         "\nOpening Neo4J browser for {} at {}",
-        style(source.display_name()).cyan(),
+        style(item.short_name()).cyan(),
         style(&url).cyan()
     );
     webbrowser::open(&url)?;

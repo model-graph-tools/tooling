@@ -3,14 +3,14 @@
 use crate::container::{running_neo4j_containers, stop_container, verify_container_command};
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
-use crate::source::Source;
 use console::style;
 use indicatif::MultiProgress;
 use tokio::task::JoinSet;
 use tokio::time::Instant;
+use wildfly_meta::MetaItem;
 
-/// Stops Neo4J containers by source identifier, or all if `--all` is passed.
-pub async fn stop(sources: Option<&[Source]>, all: bool) -> anyhow::Result<()> {
+/// Stops Neo4J containers by meta item identifier, or all if `--all` is passed.
+pub async fn stop(items: Option<&[MetaItem]>, all: bool) -> anyhow::Result<()> {
     verify_container_command()?;
 
     let container_names: Vec<String> = if all {
@@ -20,10 +20,10 @@ pub async fn stop(sources: Option<&[Source]>, all: bool) -> anyhow::Result<()> {
             .map(|r| r.container.container_name())
             .collect()
     } else {
-        sources
+        items
             .expect("Argument <identifier> expected!")
             .iter()
-            .map(|s| Neo4JContainer::new(Neo4JImage::new(s)).container_name())
+            .map(|item| Neo4JContainer::new(Neo4JImage::new(item)).container_name())
             .collect()
     };
 

@@ -6,8 +6,8 @@ use crate::constants::{
 };
 use crate::container::{container_command, run_container_cmd};
 use crate::progress::Progress;
-use crate::source::Source;
 use std::process::Stdio;
+use wildfly_meta::MetaItem;
 
 // ------------------------------------------------------ ports
 
@@ -20,8 +20,8 @@ pub struct Ports {
 
 impl Ports {
     /// Computes default bolt (6000+offset) and http (7000+offset) ports.
-    pub fn default_ports(source: &Source) -> Ports {
-        let offset = source.port_offset();
+    pub fn default_ports(item: &MetaItem) -> Ports {
+        let offset = item.port_offset();
         Ports {
             bolt: 6000 + offset,
             http: 7000 + offset,
@@ -34,14 +34,14 @@ impl Ports {
 /// A Neo4J image configuration tied to an analysis source.
 #[derive(Clone, Eq, PartialEq)]
 pub struct Neo4JImage {
-    pub source: Source,
+    pub item: MetaItem,
 }
 
 impl Neo4JImage {
-    /// Creates an image configuration from the given source.
-    pub fn new(source: &Source) -> Neo4JImage {
+    /// Creates an image configuration from the given meta item.
+    pub fn new(item: &MetaItem) -> Neo4JImage {
         Neo4JImage {
-            source: source.clone(),
+            item: item.clone(),
         }
     }
 
@@ -52,11 +52,11 @@ impl Neo4JImage {
 
     /// Returns the tagged image name on quay.io for this source.
     pub fn image_tag(&self) -> String {
-        match &self.source {
-            Source::WildFly(wc) => {
-                format!("{}:{}", MODEL_GRAPH_TOOLS_REPOSITORY, wc.version)
+        match &self.item {
+            MetaItem::Image(img) => {
+                format!("{}:{}", MODEL_GRAPH_TOOLS_REPOSITORY, img.version)
             }
-            Source::FeaturePack(fp) => {
+            MetaItem::FeaturePack(fp) => {
                 format!(
                     "{}:{}-{}",
                     MODEL_GRAPH_TOOLS_REPOSITORY, fp.shortcut, fp.version
@@ -80,7 +80,7 @@ impl Neo4JImage {
 
         std::fs::write(
             build_path.join("Dockerfile"),
-            model_db_dockerfile(&self.source.welcome_label()),
+            model_db_dockerfile(&self.item.full_name()),
         )?;
 
         let image_tag = self.image_tag();
@@ -131,18 +131,18 @@ pub struct Neo4JContainer {
 impl Neo4JContainer {
     /// Creates a container with default ports derived from the image's source.
     pub fn new(image: Neo4JImage) -> Neo4JContainer {
-        let ports = Ports::default_ports(&image.source);
+        let ports = Ports::default_ports(&image.item);
         Neo4JContainer { image, ports }
     }
 
     /// Returns the container name (e.g. `mgt-neo4j-340`).
     pub fn container_name(&self) -> String {
-        format!("mgt-neo4j-{}", self.image.source.container_id())
+        format!("mgt-neo4j-{}", self.image.item.container_name())
     }
 
     /// Returns the data volume name (e.g. `mgt-neo4j-data-340`).
     pub fn volume_name(&self) -> String {
-        format!("mgt-neo4j-data-{}", self.image.source.container_id())
+        format!("mgt-neo4j-data-{}", self.image.item.container_name())
     }
 }
 

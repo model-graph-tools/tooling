@@ -3,23 +3,23 @@
 use crate::container::{container_command, local_image_names, verify_container_command};
 use crate::neo4j::Neo4JImage;
 use crate::progress::{CommandStatus, Progress, done, summary};
-use crate::source::Source;
 use anyhow::bail;
 use console::style;
 use indicatif::MultiProgress;
 use std::process::Stdio;
 use tokio::task::JoinSet;
 use tokio::time::Instant;
+use wildfly_meta::MetaItem;
 
-/// Pushes Neo4J model DB images for the given sources to the remote registry.
-pub async fn push(sources: &[Source], chunk_size: u16) -> anyhow::Result<()> {
+/// Pushes Neo4J model DB images for the given meta items to the remote registry.
+pub async fn push(items: &[MetaItem], chunk_size: u16) -> anyhow::Result<()> {
     verify_container_command()?;
 
     let local = local_image_names().await?;
-    let pushable: Vec<_> = sources
+    let pushable: Vec<_> = items
         .iter()
-        .filter(|source| {
-            let tag = Neo4JImage::new(source).image_tag();
+        .filter(|item| {
+            let tag = Neo4JImage::new(item).image_tag();
             if local.contains(&tag) {
                 true
             } else {
@@ -62,14 +62,14 @@ pub async fn push(sources: &[Source], chunk_size: u16) -> anyhow::Result<()> {
 }
 
 /// Pushes a batch of images in parallel.
-async fn push_batch(sources: &[Source]) -> anyhow::Result<Vec<CommandStatus>> {
+async fn push_batch(items: &[MetaItem]) -> anyhow::Result<Vec<CommandStatus>> {
     let multi_progress = MultiProgress::new();
     let mut tasks = JoinSet::new();
 
-    for source in sources {
-        let image = Neo4JImage::new(source);
+    for item in items {
+        let image = Neo4JImage::new(item);
         let image_tag = image.image_tag();
-        let display = source.display_name();
+        let display = item.short_name();
         let progress = Progress::join(&multi_progress, &display);
 
         tasks.spawn(async move {

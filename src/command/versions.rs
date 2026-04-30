@@ -1,8 +1,8 @@
 //! Lists all supported WildFly versions.
 
+use crate::registry::images_registry;
 use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Cell, Color, ContentArrangement, Table};
-use wildfly_container_versions::VERSIONS;
 
 /// Prints a table of all supported WildFly versions with their metadata.
 pub fn versions() {
@@ -17,12 +17,16 @@ pub fn versions() {
             "Repository",
         ]);
 
-    for wc in VERSIONS.values() {
+    for img in images_registry().all() {
         table.add_row(vec![
-            Cell::new(wc.display_version()).fg(Color::DarkMagenta),
-            Cell::new(format!("{}{}", wc.version, suffix_display(&wc.suffix))),
-            Cell::new(format!("{}{}", wc.core_version, suffix_display(&wc.suffix))),
-            Cell::new(&wc.repository).fg(Color::AnsiValue(248)),
+            Cell::new(img.short_name()).fg(Color::DarkMagenta),
+            Cell::new(format!("{}{}", img.version, suffix_display(&img.suffix))),
+            Cell::new(format!(
+                "{}{}",
+                img.core_version,
+                suffix_display(&img.suffix)
+            )),
+            Cell::new(&img.repository).fg(Color::AnsiValue(248)),
         ]);
     }
 

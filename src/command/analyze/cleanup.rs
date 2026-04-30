@@ -5,7 +5,8 @@ use crate::neo4j::Neo4JContainer;
 use crate::progress::{CommandStatus, Progress, step_header, summary};
 use indicatif::MultiProgress;
 use tokio::task::JoinSet;
-use wado::StandaloneInstance;
+
+use super::wildfly::AnalysisInstance;
 
 /// Total number of pipeline steps shown in step headers.
 const TOTAL_STEPS: u32 = 4;
@@ -30,7 +31,7 @@ pub(super) async fn build_neo4j_image(neo4j: &Neo4JContainer) -> anyhow::Result<
 /// Full cleanup for WildFly analysis: stops WildFly instances, removes Neo4J
 /// container and volume, and tears down the network.
 pub(super) async fn cleanup(
-    instances: &[StandaloneInstance],
+    instances: &[AnalysisInstance],
     neo4j: &Neo4JContainer,
     network: &str,
 ) -> anyhow::Result<()> {

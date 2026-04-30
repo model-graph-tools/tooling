@@ -17,8 +17,8 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tokio::io::AsyncBufReadExt;
 
+use super::wildfly::AnalysisInstance;
 use crate::neo4j::Neo4JContainer;
-use wado::StandaloneInstance;
 
 /// Container image used to run the analyzer JAR.
 pub(super) const ANALYZER_IMAGE: &str = "eclipse-temurin:25-jre";
@@ -40,7 +40,7 @@ pub(super) async fn download_analyzer(url: &str, progress: &Progress) -> anyhow:
 /// is cleaned first (`--clean`) or appended to (`--append`).
 pub(super) async fn run_analyzer(
     analyzer_jar: &Path,
-    instance: &StandaloneInstance,
+    instance: &AnalysisInstance,
     neo4j: &Neo4JContainer,
     network: &str,
     mode: &str,
@@ -49,14 +49,8 @@ pub(super) async fn run_analyzer(
     progress.show_progress("Starting analyzer...");
 
     let suffix = if mode == "--clean" { "fha" } else { "mp" };
-    let analyzer_container_name = format!(
-        "mgt-analyzer-{}-{}",
-        instance.admin_container.wildfly_container.identifier, suffix
-    );
-    let log_path = temp_dir().join(format!(
-        "mgt-analyzer-{}-{}.log",
-        instance.admin_container.wildfly_container.identifier, suffix
-    ));
+    let analyzer_container_name = format!("mgt-analyzer-{}-{}", instance.identifier, suffix);
+    let log_path = temp_dir().join(format!("mgt-analyzer-{}-{}.log", instance.identifier, suffix));
     let mut log_file = BufWriter::new(File::create(&log_path)?);
     let mut error_buffer: VecDeque<String> = VecDeque::with_capacity(ERROR_BUFFER_CAPACITY);
 
