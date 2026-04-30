@@ -28,6 +28,16 @@ pub async fn init_registries() -> Result<()> {
     .await?
 }
 
+/// Synchronous version of registry initialization for use in tests.
+#[cfg(test)]
+pub fn init_registries_sync() -> Result<()> {
+    let images = WildFlyImageRegistry::load_or_update(RESOLUTION_HINT)?;
+    let packs = FeaturePackRegistry::load_or_update(RESOLUTION_HINT)?;
+    IMAGES.set(images).ok();
+    PACKS.set(packs).ok();
+    Ok(())
+}
+
 pub fn images_registry() -> &'static WildFlyImageRegistry {
     IMAGES.get().expect("WildFlyImageRegistry not initialized")
 }

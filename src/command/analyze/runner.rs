@@ -50,7 +50,10 @@ pub(super) async fn run_analyzer(
 
     let suffix = if mode == "--clean" { "fha" } else { "mp" };
     let analyzer_container_name = format!("mgt-analyzer-{}-{}", instance.identifier, suffix);
-    let log_path = temp_dir().join(format!("mgt-analyzer-{}-{}.log", instance.identifier, suffix));
+    let log_path = temp_dir().join(format!(
+        "mgt-analyzer-{}-{}.log",
+        instance.identifier, suffix
+    ));
     let mut log_file = BufWriter::new(File::create(&log_path)?);
     let mut error_buffer: VecDeque<String> = VecDeque::with_capacity(ERROR_BUFFER_CAPACITY);
 

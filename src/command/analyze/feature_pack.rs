@@ -48,8 +48,7 @@ pub(super) async fn run_feature_pack_analysis(
             result.map(|()| PathBuf::new())
         });
 
-        let dl_progress =
-            Progress::join(&multi_progress, &format!("Download {}", fp.short_name()));
+        let dl_progress = Progress::join(&multi_progress, &format!("Download {}", fp.short_name()));
         let url = fp.download_url();
         tasks.spawn(async move {
             let result = download_doc_zip(&url, &dl_progress).await;

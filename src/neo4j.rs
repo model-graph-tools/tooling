@@ -40,9 +40,7 @@ pub struct Neo4JImage {
 impl Neo4JImage {
     /// Creates an image configuration from the given meta item.
     pub fn new(item: &MetaItem) -> Neo4JImage {
-        Neo4JImage {
-            item: item.clone(),
-        }
+        Neo4JImage { item: item.clone() }
     }
 
     /// Returns the upstream Neo4J base image reference (e.g. `docker.io/neo4j:5.26.12-community`).
