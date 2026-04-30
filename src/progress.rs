@@ -189,8 +189,7 @@ impl Progress {
                     self.finish_success(status);
                     CommandStatus::success(&self.name)
                 } else {
-                    let msg = String::from_utf8_lossy(&output.stderr)
-                        .replace('\n', " ");
+                    let msg = String::from_utf8_lossy(&output.stderr).replace('\n', " ");
                     self.finish_error(&msg);
                     CommandStatus::error(&self.name, &msg)
                 }
@@ -249,9 +248,7 @@ impl Progress {
 // ------------------------------------------------------ stderr
 
 /// Takes stderr from a child process and returns a line-buffered async reader.
-pub fn stderr_reader(
-    child: &mut tokio::process::Child,
-) -> Lines<BufReader<ChildStderr>> {
+pub fn stderr_reader(child: &mut tokio::process::Child) -> Lines<BufReader<ChildStderr>> {
     let stderr = child
         .stderr
         .take()

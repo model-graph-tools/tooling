@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-30
+
 ### Added
 - Add `trace_progress`, `finish_output`, and `stderr_reader` helpers for streaming child process output to progress spinners
 
@@ -60,7 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release 🎉
 
-[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/model-graph-tools/tooling/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/model-graph-tools/tooling/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/model-graph-tools/tooling/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/model-graph-tools/tooling/compare/v0.0.2...v0.1.0
