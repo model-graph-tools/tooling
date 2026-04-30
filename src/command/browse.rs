@@ -11,7 +11,10 @@ pub fn browse(item: &MetaItem) -> anyhow::Result<()> {
 
     let image = Neo4JImage::new(item);
     let neo4j = Neo4JContainer::new(image);
-    let url = format!("http://localhost:{}/browser", neo4j.ports.http);
+    let url = format!(
+        "http://localhost:{}/browser?dbms=bolt://localhost:{}",
+        neo4j.ports.http, neo4j.ports.bolt
+    );
     println!(
         "\nOpening Neo4J browser for {} at {}",
         style(item.short_name()).cyan(),
