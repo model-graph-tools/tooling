@@ -7,7 +7,7 @@
 use std::sync::OnceLock;
 
 use anyhow::Result;
-use wildfly_meta::{FeaturePackRegistry, WildFlyImageRegistry, update_feature_packs, update_wildfly_images};
+use wildfly_meta::{FeaturePackRegistry, WildFlyImageRegistry};
 
 static IMAGES: OnceLock<WildFlyImageRegistry> = OnceLock::new();
 static PACKS: OnceLock<FeaturePackRegistry> = OnceLock::new();
@@ -19,14 +19,8 @@ const RESOLUTION_HINT: &str = "Run 'mgt update' to download the configuration fi
 /// Runs on a blocking thread to avoid panics from `reqwest::blocking` inside the tokio runtime.
 pub async fn init_registries() -> Result<()> {
     tokio::task::spawn_blocking(|| {
-        let images = WildFlyImageRegistry::load_default(RESOLUTION_HINT).or_else(|_| {
-            update_wildfly_images()?;
-            WildFlyImageRegistry::load_default(RESOLUTION_HINT)
-        })?;
-        let packs = FeaturePackRegistry::load_default(RESOLUTION_HINT).or_else(|_| {
-            update_feature_packs()?;
-            FeaturePackRegistry::load_default(RESOLUTION_HINT)
-        })?;
+        let images = WildFlyImageRegistry::load_or_update(RESOLUTION_HINT)?;
+        let packs = FeaturePackRegistry::load_or_update(RESOLUTION_HINT)?;
         IMAGES.set(images).ok();
         PACKS.set(packs).ok();
         Ok(())
