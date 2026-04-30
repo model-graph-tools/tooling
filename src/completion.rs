@@ -3,7 +3,7 @@
 use std::ffi::OsStr;
 
 use clap_complete::engine::CompletionCandidate;
-use wildfly_meta::{CompletionOptions, all_meta_items, suggest_meta_items};
+use wildfly_meta::{DslOptions, all_meta_items, suggest_meta_items};
 
 use crate::registry::{images_registry, packs_registry};
 
@@ -22,8 +22,8 @@ pub fn complete_multiple_identifiers(current: &OsStr) -> Vec<CompletionCandidate
         input,
         images_registry(),
         packs_registry(),
-        &CompletionOptions::all(),
-        &CompletionOptions::none(),
+        &DslOptions::all(),
+        &DslOptions::none(),
     )
     .into_iter()
     .map(CompletionCandidate::new)

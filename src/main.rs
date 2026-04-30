@@ -22,7 +22,7 @@ use crate::registry::{images_registry, init_registries, packs_registry};
 use anyhow::Result;
 use app::build_app;
 use clap_complete::engine::ArgValueCompleter;
-use wildfly_meta::{MetaItem, ParseOptions, parse_meta_item, parse_meta_items};
+use wildfly_meta::{DslOptions, MetaItem, parse_meta_item, parse_meta_items};
 
 /// Extends [`build_app()`] with value parsers and tab-completion handlers.
 fn build_app_full() -> clap::Command {
@@ -120,8 +120,8 @@ fn parse_list(input: &str) -> Result<Vec<MetaItem>, String> {
         input,
         images_registry(),
         packs_registry(),
-        &ParseOptions::all(),
-        &ParseOptions::none(),
+        &DslOptions::all(),
+        &DslOptions::none(),
     )
     .map_err(|err| err.to_string())
 }
