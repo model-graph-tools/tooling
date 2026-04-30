@@ -10,7 +10,7 @@ pub async fn ps() -> anyhow::Result<()> {
 
     let containers = running_neo4j_containers().await?;
     if containers.is_empty() {
-        println!("\nNo running Neo4J model DB containers found.");
+        println!("\nNo running model containers found.");
         return Ok(());
     }
 
