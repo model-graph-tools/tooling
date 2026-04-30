@@ -6,7 +6,7 @@
 use super::cleanup::{build_neo4j_image, cleanup};
 use super::neo4j_ops::start_neo4j;
 use super::runner::{ANALYZER_IMAGE, download_analyzer, run_analyzer};
-use crate::constants::analyzer_url;
+use crate::constants::{WADO_SA_REPOSITORY, analyzer_url};
 use crate::container::{container_command, create_network, healthcheck, network_name, pull_image};
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{Progress, step_header};
@@ -110,11 +110,12 @@ pub(super) async fn run_wildfly_analysis(
     let neo4j = Neo4JContainer::new(neo4j_image);
     let network = network_name(item);
 
+    let wado_image_ref = format!("{}:{}.{}", WADO_SA_REPOSITORY, image.version, image.suffix);
     let instances: Vec<AnalysisInstance> = configs
         .iter()
         .enumerate()
         .map(|(i, cfg)| AnalysisInstance {
-            image_ref: image.image_ref(),
+            image_ref: wado_image_ref.clone(),
             identifier: image.identifier,
             name: format!("mgt-wado-sa-{}-{}", image.identifier, cfg.suffix),
             http_port: image.http_port() + i as u16,
