@@ -2,7 +2,10 @@
 
 use console::{Emoji, style, truncate_str};
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
+use std::process::Output;
 use std::time::Duration;
+use tokio::io::{AsyncBufReadExt, BufReader, Lines};
+use tokio::process::ChildStderr;
 use tokio::time::Instant;
 
 /// Column width for left-aligning progress bar names.
@@ -160,6 +163,46 @@ impl Progress {
             .expect("Invalid template")
     }
 
+    /// Reads lines from an async reader and updates the spinner message with each line.
+    pub async fn trace_progress<R>(&self, mut reader: Lines<BufReader<R>>)
+    where
+        R: tokio::io::AsyncRead + Unpin,
+    {
+        while let Some(line) = reader
+            .next_line()
+            .await
+            .expect("Unable to read output from command.")
+        {
+            self.show_progress(line.as_str());
+        }
+    }
+
+    /// Finishes the spinner based on the command output, returning a [`CommandStatus`].
+    pub fn finish_output(
+        &self,
+        output: std::io::Result<Output>,
+        status: Option<&str>,
+    ) -> CommandStatus {
+        match output {
+            Ok(output) => {
+                if output.status.success() {
+                    self.finish_success(status);
+                    CommandStatus::success(&self.name)
+                } else {
+                    let msg = String::from_utf8_lossy(&output.stderr)
+                        .replace('\n', " ");
+                    self.finish_error(&msg);
+                    CommandStatus::error(&self.name, &msg)
+                }
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                self.finish_error(&msg);
+                CommandStatus::error(&self.name, &msg)
+            }
+        }
+    }
+
     /// Updates the spinner message with the current operation status.
     pub fn show_progress(&self, text: &str) {
         let padded = format!("{:<width$}", self.name, width = NAME_WIDTH);
@@ -201,4 +244,17 @@ impl Progress {
             style(err).red()
         ));
     }
+}
+
+// ------------------------------------------------------ stderr
+
+/// Takes stderr from a child process and returns a line-buffered async reader.
+pub fn stderr_reader(
+    child: &mut tokio::process::Child,
+) -> Lines<BufReader<ChildStderr>> {
+    let stderr = child
+        .stderr
+        .take()
+        .expect("Command did not have a handle to stderr.");
+    BufReader::new(stderr).lines()
 }

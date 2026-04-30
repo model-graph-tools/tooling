@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add `trace_progress`, `finish_output`, and `stderr_reader` helpers for streaming child process output to progress spinners
+
+### Fixed
+- Fix `push` command hanging indefinitely by streaming container runtime output in real time instead of buffering it
+
 ## [0.2.0] - 2026-04-30
 
 ### Added

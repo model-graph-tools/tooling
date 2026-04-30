@@ -2,7 +2,7 @@
 
 use crate::container::{container_command, local_image_names, verify_container_command};
 use crate::neo4j::Neo4JImage;
-use crate::progress::{CommandStatus, Progress, done, summary};
+use crate::progress::{CommandStatus, Progress, done, stderr_reader, summary};
 use anyhow::bail;
 use console::style;
 use indicatif::MultiProgress;
@@ -72,31 +72,25 @@ async fn push_batch(items: &[MetaItem]) -> anyhow::Result<Vec<CommandStatus>> {
         let display = item.short_name();
         let progress = Progress::join(&multi_progress, &display);
 
+        let mut cmd = container_command()?;
+        cmd.arg("manifest")
+            .arg("push")
+            .arg(&image_tag)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+
+        let mut child = cmd.spawn().expect("Unable to run container push command.");
+        let stderr = stderr_reader(&mut child);
+        let progress_clone = progress.clone();
+
         tasks.spawn(async move {
-            let result = push_image(&image_tag, &progress).await;
-            match &result {
-                Ok(()) => progress.finish_success(None),
-                Err(e) => progress.finish_error(&e.to_string()),
-            }
-            CommandStatus::from_result(&display, &result)
+            let output = child.wait_with_output().await;
+            progress.finish_output(output, None)
+        });
+        tokio::spawn(async move {
+            progress_clone.trace_progress(stderr).await;
         });
     }
 
     Ok(tasks.join_all().await)
-}
-
-/// Pushes a single multi-arch manifest image to the registry.
-async fn push_image(image_tag: &str, progress: &Progress) -> anyhow::Result<()> {
-    progress.show_progress("Pushing...");
-    let mut cmd = container_command()?;
-    cmd.arg("manifest")
-        .arg("push")
-        .arg(image_tag)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let output = cmd.output().await?;
-    if !output.status.success() {
-        bail!("Push failed: {}", String::from_utf8_lossy(&output.stderr));
-    }
-    Ok(())
 }
