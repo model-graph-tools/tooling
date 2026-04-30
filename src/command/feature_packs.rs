@@ -5,7 +5,13 @@ use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Cell, Color, ContentArrangement, Table};
 
 /// Prints a table of all supported feature packs with their Maven coordinates.
-pub fn feature_packs_cmd() {
+pub fn feature_packs_cmd(json: bool) {
+    if json {
+        let packs: Vec<_> = packs_registry().all();
+        println!("{}", serde_json::to_string(&packs).unwrap());
+        return;
+    }
+
     let mut table = Table::new();
     table
         .load_preset(UTF8_BORDERS_ONLY)

@@ -121,6 +121,14 @@ impl Progress {
         progress
     }
 
+    /// Creates a hidden progress bar that produces no terminal output.
+    pub fn hidden(name: &str) -> Progress {
+        Progress {
+            name: name.to_string(),
+            bar: ProgressBar::hidden(),
+        }
+    }
+
     /// Creates a standalone progress bar.
     pub fn new(name: &str) -> Progress {
         let progress = Progress {

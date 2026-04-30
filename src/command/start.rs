@@ -1,6 +1,7 @@
 //! Starts Neo4J containers from pre-built images.
 
 use crate::container::{container_command, healthcheck, pull_image, verify_container_command};
+use crate::json::CommandResult;
 use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
@@ -13,22 +14,26 @@ use tokio::time::Instant;
 use wildfly_meta::MetaItem;
 
 /// Starts Neo4J containers for the given meta items from their pre-built images.
-pub async fn start(items: &[MetaItem]) -> anyhow::Result<()> {
+pub async fn start(items: &[MetaItem], json: bool) -> anyhow::Result<()> {
     verify_container_command()?;
 
     let count = items.len();
-    let noun = if count == 1 {
-        "container"
+    let multi_progress = if json {
+        None
     } else {
-        "containers"
+        let noun = if count == 1 {
+            "container"
+        } else {
+            "containers"
+        };
+        println!(
+            "\n{}",
+            style(format!("Starting {} Neo4J model DB {}", count, noun)).bold()
+        );
+        Some(MultiProgress::new())
     };
-    println!(
-        "\n{}",
-        style(format!("Starting {} Neo4J model DB {}", count, noun)).bold()
-    );
 
     let instant = Instant::now();
-    let multi_progress = MultiProgress::new();
     let mut tasks = JoinSet::new();
 
     for item in items {
@@ -36,23 +41,65 @@ pub async fn start(items: &[MetaItem]) -> anyhow::Result<()> {
         let neo4j = Neo4JContainer::new(image);
         let display = item.short_name();
         let item = item.clone();
-        let progress = Progress::join(&multi_progress, &display);
+        let progress = match &multi_progress {
+            Some(mp) => Progress::join(mp, &display),
+            None => Progress::hidden(&display),
+        };
+        let bolt = neo4j.ports.bolt;
+        let http = neo4j.ports.http;
         tasks.spawn(async move {
             let result = start_neo4j(&neo4j, &item, &progress).await;
-            match &result {
-                Ok(()) => {
-                    progress
-                        .finish_success(Some(&format!("http://localhost:{}", neo4j.ports.http)));
+            if !json {
+                match &result {
+                    Ok(()) => {
+                        progress.finish_success(Some(&format!(
+                            "http://localhost:{}",
+                            neo4j.ports.http
+                        )));
+                    }
+                    Err(e) => progress.finish_error(&e.to_string()),
                 }
-                Err(e) => progress.finish_error(&e.to_string()),
             }
-            CommandStatus::from_result(&display, &result)
+            (
+                display,
+                result,
+                bolt,
+                http,
+            )
         });
     }
 
-    let status = tasks.join_all().await;
-    summary(count, &status);
-    done(instant);
+    let results = tasks.join_all().await;
+
+    if json {
+        let command_results: Vec<CommandResult> = results
+            .into_iter()
+            .map(|(identifier, result, bolt, http)| match result {
+                Ok(()) => CommandResult {
+                    identifier,
+                    success: true,
+                    bolt: Some(bolt),
+                    http: Some(http),
+                    error: None,
+                },
+                Err(e) => CommandResult {
+                    identifier,
+                    success: false,
+                    bolt: None,
+                    http: None,
+                    error: Some(e.to_string()),
+                },
+            })
+            .collect();
+        println!("{}", serde_json::to_string(&command_results).unwrap());
+    } else {
+        let status: Vec<CommandStatus> = results
+            .iter()
+            .map(|(display, result, _, _)| CommandStatus::from_result(display, result))
+            .collect();
+        summary(count, &status);
+        done(instant);
+    }
     Ok(())
 }
 

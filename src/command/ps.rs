@@ -1,14 +1,34 @@
 //! Lists running Neo4J model DB containers in a table.
 
 use crate::container::{running_neo4j_containers, verify_container_command};
+use crate::json::ContainerInfo;
 use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Cell, Color, ContentArrangement, Table};
 
 /// Lists all running Neo4J model DB containers in a formatted table.
-pub async fn ps() -> anyhow::Result<()> {
+pub async fn ps(json: bool) -> anyhow::Result<()> {
     verify_container_command()?;
 
     let containers = running_neo4j_containers().await?;
+
+    if json {
+        let infos: Vec<ContainerInfo> = containers
+            .iter()
+            .map(|running| ContainerInfo {
+                identifier: running.container.image.item.expression(),
+                source_type: running.container.image.item.kind().to_string(),
+                name: running.container.image.item.full_name(),
+                container_name: running.container.container_name(),
+                bolt: running.container.ports.bolt,
+                http: running.container.ports.http,
+                status: running.status.clone(),
+                id: running.id.clone(),
+            })
+            .collect();
+        println!("{}", serde_json::to_string(&infos).unwrap());
+        return Ok(());
+    }
+
     if containers.is_empty() {
         println!("\nNo running model containers found.");
         return Ok(());

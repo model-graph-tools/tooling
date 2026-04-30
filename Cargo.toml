@@ -22,11 +22,13 @@ indicatif = { version = "0.18.4", features = ["rayon"] }
 regex = "1.12.3"
 reqwest = "0.13.3"
 semver = "1.0.28"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 tempfile = "3.27.0"
 tokio = { version = "1.52.1", features = ["full"] }
 webbrowser = "1.2.1"
 which = "8.0.2"
-wildfly_meta = "0.5.0"
+wildfly_meta = "0.6.1"
 
 # use LTO for smaller binaries (that take longer to build)
 [profile.release]

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add global `--json` flag for machine-readable JSON output on `versions`, `feature-packs`, `ps`, `start`, and `stop` commands
+- Add `ContainerInfo` and `CommandResult` serializable types for structured JSON output of container commands
+- Add `Progress::hidden()` constructor for silent progress bars in JSON mode
+
 ## [0.1.1] - 2026-04-30
 
 ### Fixed

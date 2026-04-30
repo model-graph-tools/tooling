@@ -7,6 +7,7 @@ mod completion;
 mod constants;
 mod container;
 mod download;
+mod json;
 mod label;
 mod neo4j;
 mod progress;
@@ -68,6 +69,7 @@ async fn main() -> Result<()> {
     clap_complete::CompleteEnv::with_factory(build_app_full).complete();
 
     let matches = build_app_full().get_matches();
+    let json = matches.get_flag("json");
 
     match matches.subcommand() {
         Some(("analyze", m)) => analyze(&meta_item_argument(m)).await,
@@ -75,18 +77,18 @@ async fn main() -> Result<()> {
             let chunk_size = m.get_one::<u16>("chunks").copied().unwrap_or(0);
             push(&meta_items_argument(m), chunk_size).await
         }
-        Some(("start", m)) => start(&meta_items_argument(m)).await,
+        Some(("start", m)) => start(&meta_items_argument(m), json).await,
         Some(("stop", m)) => {
             let all = m.get_flag("all");
             let items = m.get_one::<Vec<MetaItem>>("identifier");
-            stop(items.map(|v| v.as_slice()), all).await
+            stop(items.map(|v| v.as_slice()), all, json).await
         }
         Some(("versions", _)) => {
-            versions();
+            versions(json);
             Ok(())
         }
         Some(("feature-packs", _)) => {
-            feature_packs_cmd();
+            feature_packs_cmd(json);
             Ok(())
         }
         Some(("images", m)) => {
@@ -94,7 +96,7 @@ async fn main() -> Result<()> {
             let feature_packs = m.get_flag("feature-packs");
             images(wildfly, feature_packs).await
         }
-        Some(("ps", _)) => ps().await,
+        Some(("ps", _)) => ps(json).await,
         Some(("browse", m)) => {
             for item in &meta_items_argument(m) {
                 browse(item)?;

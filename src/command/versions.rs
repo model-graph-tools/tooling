@@ -5,7 +5,13 @@ use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Cell, Color, ContentArrangement, Table};
 
 /// Prints a table of all supported WildFly versions with their metadata.
-pub fn versions() {
+pub fn versions(json: bool) {
+    if json {
+        let images: Vec<_> = images_registry().all();
+        println!("{}", serde_json::to_string(&images).unwrap());
+        return;
+    }
+
     let mut table = Table::new();
     table
         .load_preset(UTF8_BORDERS_ONLY)
