@@ -55,6 +55,7 @@ The codebase is organized into top-level modules and a `command/` submodule tree
 - **`feature_packs.rs`** — List supported feature packs.
 - **`images.rs`** — List locally available Neo4J model DB images.
 - **`ps.rs`** — List running Neo4J model DB containers.
+- **`update.rs`** — Update WildFly and feature pack configuration files from `wildfly_meta`.
 - **`completions.rs`** — Shell completion generation and installation.
 
 ## Key Dependencies

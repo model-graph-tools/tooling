@@ -13,11 +13,12 @@
     - [start](#start)
     - [stop](#stop)
     - [browse](#browse)
+    - [images](#images)
     - [versions](#versions)
     - [feature-packs](#feature-packs)
-    - [images](#images)
     - [ps](#ps)
     - [completions](#completions)
+    - [update](#update)
 
 # Installation
 
@@ -153,6 +154,16 @@ mgt browse 34
 mgt browse ai
 ```
 
+## images
+
+Lists all locally available Neo4J model DB images. Use `--wildfly` or `--feature-packs` to filter.
+
+```shell
+mgt images
+mgt images --wildfly
+mgt images --feature-packs
+```
+
 ## versions
 
 Lists all supported WildFly versions.
@@ -167,16 +178,6 @@ Lists all supported feature packs.
 
 ```shell
 mgt feature-packs
-```
-
-## images
-
-Lists all locally available Neo4J model DB images. Use `--wildfly` or `--feature-packs` to filter.
-
-```shell
-mgt images
-mgt images --wildfly
-mgt images --feature-packs
 ```
 
 ## ps
@@ -195,4 +196,12 @@ Generates and installs shell completions. See [Shell Completions](#shell-complet
 mgt completions --install
 mgt completions fish --install
 mgt completions fish
+```
+
+## update
+
+Updates the WildFly and feature pack configuration files used by `mgt`. These files are stored in `~/.config/wildfly-meta/` and contain version metadata and feature pack definitions.
+
+```shell
+mgt update
 ```

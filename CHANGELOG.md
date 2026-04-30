@@ -7,12 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add `update` subcommand to update WildFly and feature pack configuration files from `wildfly_meta`
+
+### Changed
+- Migrate from `wado`/`wildfly_container_versions` to `wildfly_meta` crate for all WildFly image and feature pack metadata
+- Upgrade `wildfly_meta` to 0.5.0 with built-in fail-safe handling and synchronous registry initialization
+
+### Fixed
+- Use synchronous registry initialization in tests to prevent race conditions
+
 ## [0.0.2] - 2026-04-28
 
 ### Added
 - Add `push` subcommand to push Neo4J model DB images to quay.io with parallel execution, progress tracking, and optional `--chunks` flag for batched pushes
 - Add `source-type` and `source-name` container labels for reliable container listing
-- Serve welcome page locally via nginx reverse proxy with source info
+- Serve the welcome page locally via nginx reverse proxy with source info
 
 ### Fixed
 - Fix gear emoji (COG) using correct Unicode codepoint `U+2699 U+FE0F`
