@@ -26,14 +26,14 @@ pub fn build_app() -> Command {
 
         // analyze
         .subcommand(Command::new("analyze")
-            .about("Analyze the management model of a WildFly instance or feature pack and build an image with a Neo4J database")
+            .about("Analyze the management model of a WildFly instance or feature pack and build a self-contained Neo4J model image with the results")
             .arg(Arg::new("identifier")
                 .required(true)
                 .help("A WildFly version (e.g. 39, 26.1) or feature pack (e.g. ai, graphql)")))
 
         // push
         .subcommand(Command::new("push")
-            .about("Push Neo4J model DB images to the remote registry")
+            .about("Push model images to the remote registry")
             .arg(Arg::new("identifier")
                 .required(true)
                 .help("WildFly versions, feature packs, or a mix (e.g. 34,ai,graphql)"))
@@ -45,14 +45,14 @@ pub fn build_app() -> Command {
 
         // start
         .subcommand(Command::new("start")
-            .about("Start Neo4J model DB containers")
+            .about("Start model containers")
             .arg(Arg::new("identifier")
                 .required(true)
                 .help("WildFly versions, feature packs, or a mix (e.g. 34,ai,graphql)")))
 
         // stop
         .subcommand(Command::new("stop")
-            .about("Stop Neo4J model DB containers")
+            .about("Stop model containers")
             .arg(Arg::new("identifier")
                 .required_unless_present("all")
                 .help("WildFly versions, feature packs, or a mix (e.g. 34,ai,graphql)"))
@@ -72,7 +72,7 @@ pub fn build_app() -> Command {
 
         // images
         .subcommand(Command::new("images")
-            .about("List all available Neo4J model DB images")
+            .about("List all available model images")
             .arg(Arg::new("wildfly")
                 .short('w')
                 .long("wildfly")
@@ -86,11 +86,11 @@ pub fn build_app() -> Command {
 
         // ps
         .subcommand(Command::new("ps")
-            .about("List running Neo4J model DB containers"))
+            .about("List running model containers"))
 
         // browse
         .subcommand(Command::new("browse")
-            .about("Open the Neo4J browser for running Neo4J model DBs")
+            .about("Open the Neo4J browser for running model containers")
             .arg(Arg::new("identifier")
                 .required(true)
                 .help("WildFly versions, feature packs, or a mix (e.g. 34,ai,graphql)")))
