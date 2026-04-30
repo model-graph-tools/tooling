@@ -7,44 +7,31 @@
 use std::sync::OnceLock;
 
 use anyhow::Result;
-use wildfly_meta::{
-    FeaturePackRegistry, WildFlyImageRegistry, feature_packs_path, update_all,
-    wildfly_images_path,
-};
+use wildfly_meta::{FeaturePackRegistry, WildFlyImageRegistry, update_feature_packs, update_wildfly_images};
 
 static IMAGES: OnceLock<WildFlyImageRegistry> = OnceLock::new();
 static PACKS: OnceLock<FeaturePackRegistry> = OnceLock::new();
 
+const RESOLUTION_HINT: &str = "Run 'mgt update' to download the configuration files";
+
 /// Loads registries from TOML config files, downloading them first if missing.
 ///
-/// Handles stale config files from older wildfly_meta versions by deleting
-/// them and re-downloading.
-pub fn init_registries() -> Result<()> {
-    let images = load_or_update(
-        WildFlyImageRegistry::load_default,
-        wildfly_images_path(),
-    )?;
-    let packs = load_or_update(
-        FeaturePackRegistry::load_default,
-        feature_packs_path(),
-    )?;
-    IMAGES.set(images).ok();
-    PACKS.set(packs).ok();
-    Ok(())
-}
-
-fn load_or_update<T>(load: fn() -> Result<T>, path: std::path::PathBuf) -> Result<T> {
-    if let Ok(reg) = load() {
-        return Ok(reg);
-    }
-    match update_all() {
-        Ok(_) => load(),
-        Err(_) => {
-            let _ = std::fs::remove_file(&path);
-            update_all()?;
-            load()
-        }
-    }
+/// Runs on a blocking thread to avoid panics from `reqwest::blocking` inside the tokio runtime.
+pub async fn init_registries() -> Result<()> {
+    tokio::task::spawn_blocking(|| {
+        let images = WildFlyImageRegistry::load_default(RESOLUTION_HINT).or_else(|_| {
+            update_wildfly_images()?;
+            WildFlyImageRegistry::load_default(RESOLUTION_HINT)
+        })?;
+        let packs = FeaturePackRegistry::load_default(RESOLUTION_HINT).or_else(|_| {
+            update_feature_packs()?;
+            FeaturePackRegistry::load_default(RESOLUTION_HINT)
+        })?;
+        IMAGES.set(images).ok();
+        PACKS.set(packs).ok();
+        Ok(())
+    })
+    .await?
 }
 
 pub fn images_registry() -> &'static WildFlyImageRegistry {

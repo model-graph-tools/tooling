@@ -15,7 +15,7 @@ pub fn feature_packs_cmd() {
     for fp in packs_registry().all() {
         table.add_row(vec![
             Cell::new(&fp.shortcut).fg(Color::DarkMagenta),
-            Cell::new(&fp.version).fg(Color::DarkCyan),
+            Cell::new(fp.version.to_string()).fg(Color::DarkCyan),
             Cell::new(&fp.group_id).fg(Color::AnsiValue(248)),
             Cell::new(&fp.artifact_id).fg(Color::AnsiValue(248)),
         ]);

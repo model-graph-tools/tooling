@@ -12,6 +12,7 @@ mod ps;
 mod push;
 mod start;
 mod stop;
+mod update;
 mod versions;
 
 pub use analyze::analyze;
@@ -23,4 +24,5 @@ pub use ps::ps;
 pub use push::push;
 pub use start::start;
 pub use stop::stop;
+pub use update::update;
 pub use versions::versions;

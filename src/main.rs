@@ -14,7 +14,8 @@ mod registry;
 
 use crate::args::{meta_item_argument, meta_items_argument};
 use crate::command::{
-    analyze, browse, completions, feature_packs_cmd, images, ps, push, start, stop, versions,
+    analyze, browse, completions, feature_packs_cmd, images, ps, push, start, stop, update,
+    versions,
 };
 use crate::completion::{complete_multiple_identifiers, complete_single_identifier};
 use crate::registry::{images_registry, init_registries, packs_registry};
@@ -62,7 +63,7 @@ fn build_app_full() -> clap::Command {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    init_registries()?;
+    init_registries().await?;
 
     clap_complete::CompleteEnv::with_factory(build_app_full).complete();
 
@@ -100,6 +101,7 @@ async fn main() -> Result<()> {
             }
             Ok(())
         }
+        Some(("update", _)) => update().await,
         Some(("completions", m)) => completions(m),
         _ => unreachable!("Unknown subcommand"),
     }

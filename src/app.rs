@@ -95,6 +95,10 @@ pub fn build_app() -> Command {
                 .required(true)
                 .help("WildFly versions, feature packs, or a mix (e.g. 34,ai,graphql)")))
 
+        // update
+        .subcommand(Command::new("update")
+            .about("Update WildFly and feature pack configuration files"))
+
         // completions
         .subcommand(Command::new("completions")
             .about("Generate and install shell completions")
