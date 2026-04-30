@@ -60,12 +60,7 @@ pub async fn start(items: &[MetaItem], json: bool) -> anyhow::Result<()> {
                     Err(e) => progress.finish_error(&e.to_string()),
                 }
             }
-            (
-                display,
-                result,
-                bolt,
-                http,
-            )
+            (display, result, bolt, http)
         });
     }
 

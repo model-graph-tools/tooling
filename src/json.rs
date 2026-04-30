@@ -44,7 +44,8 @@ mod tests {
             status: "Up 2 hours".into(),
             id: "abc123".into(),
         };
-        let json: serde_json::Value = serde_json::from_str(&serde_json::to_string(&info).unwrap()).unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&info).unwrap()).unwrap();
         assert_eq!(json["identifier"], "39.0");
         assert_eq!(json["source_type"], "wildfly");
         assert_eq!(json["name"], "WildFly 39.0");
@@ -79,7 +80,8 @@ mod tests {
                 id: "def456".into(),
             },
         ];
-        let json: serde_json::Value = serde_json::from_str(&serde_json::to_string(&infos).unwrap()).unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&infos).unwrap()).unwrap();
         assert!(json.is_array());
         assert_eq!(json.as_array().unwrap().len(), 2);
         assert_eq!(json[0]["identifier"], "39.0");
@@ -113,7 +115,8 @@ mod tests {
             http: Some(7390),
             error: None,
         };
-        let json: serde_json::Value = serde_json::from_str(&serde_json::to_string(&result).unwrap()).unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&result).unwrap()).unwrap();
         assert_eq!(json["success"], true);
         assert_eq!(json["bolt"], 6390);
         assert_eq!(json["http"], 7390);
@@ -129,7 +132,8 @@ mod tests {
             http: None,
             error: Some("Failed to pull image: not found".into()),
         };
-        let json: serde_json::Value = serde_json::from_str(&serde_json::to_string(&result).unwrap()).unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&result).unwrap()).unwrap();
         assert_eq!(json["success"], false);
         assert_eq!(json["error"], "Failed to pull image: not found");
         assert!(json.get("bolt").is_none());
@@ -153,7 +157,8 @@ mod tests {
                 error: Some("not found".into()),
             },
         ];
-        let json: serde_json::Value = serde_json::from_str(&serde_json::to_string(&results).unwrap()).unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&results).unwrap()).unwrap();
         assert!(json.is_array());
         assert_eq!(json.as_array().unwrap().len(), 2);
         assert_eq!(json[0]["success"], true);
