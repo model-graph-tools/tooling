@@ -3,7 +3,12 @@
 
 # Model Graph Tooling
 
-`mgt` is a command line tool to analyze the [WildFly](https://www.wildfly.org/) management model. It orchestrates the pipeline of starting WildFly containers, spinning up [Neo4J](https://neo4j.com/) databases, running the Java-based [analyzer](https://github.com/model-graph-tools/analyzer), and building self-contained Neo4J images with pre-populated databases. Part of the [model graph tools](https://model-graph-tools.github.io/) ecosystem.
+`mgt` is a command line tool for working with the [WildFly](https://www.wildfly.org/) management model graph. It serves two main purposes:
+
+1. **Analysis Pipeline** — Orchestrates starting WildFly containers, spinning up [Neo4J](https://neo4j.com/) databases, running the Java-based [analyzer](https://github.com/model-graph-tools/analyzer), and building self-contained Neo4J images with pre-populated databases.
+2. **Model Container Management** — Starts and stops Neo4J model containers, making the management model graph available for querying and exploration.
+
+`mgt` is a key component of the [model graph tools](https://model-graph-tools.github.io/) ecosystem and powers the [Model Graph Tools Claude Code Plugin](https://github.com/model-graph-tools/claude-plugin), which provides an MCP server for exploring the WildFly management model directly from Claude Code.
 
 - [Installation](#installation)
 - [Identifiers](#identifiers)

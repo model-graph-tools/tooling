@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`mgt` is a Rust CLI tool that orchestrates the analysis of the WildFly management model. It automates the pipeline of starting WildFly containers, spinning up Neo4J databases, running the Java-based [analyzer](https://github.com/model-graph-tools/analyzer), and building self-contained Neo4J images. Part of the [model graph tools](https://model-graph-tools.github.io/) ecosystem.
+`mgt` is a Rust CLI tool for working with the WildFly management model graph. It serves two main purposes:
+
+1. **Analysis Pipeline** — Orchestrates starting WildFly containers, spinning up Neo4J databases, running the Java-based [analyzer](https://github.com/model-graph-tools/analyzer), and building self-contained Neo4J images.
+2. **Model Container Management** — Starts and stops Neo4J model containers, making the management model graph available for querying and exploration.
+
+`mgt` is a key component of the [model graph tools](https://model-graph-tools.github.io/) ecosystem and powers the [Model Graph Tools Claude Code Plugin](https://github.com/model-graph-tools/claude-plugin), which provides an MCP server for exploring the WildFly management model directly from Claude Code.
 
 ## Build Commands
 
