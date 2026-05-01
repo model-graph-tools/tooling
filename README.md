@@ -205,7 +205,7 @@ mgt completions fish
 
 ## update
 
-Updates the WildFly and feature pack configuration files used by `mgt`. These files are stored in `~/.config/wildfly-meta/` and contain version metadata and feature pack definitions.
+Updates the WildFly and feature pack configuration files used by `mgt`. These files are hosted at [github.com/hpehl/wildfly-meta](https://github.com/hpehl/wildfly-meta/) and stored locally in `~/.config/wildfly-meta/`.
 
 ```shell
 mgt update
