@@ -40,6 +40,7 @@ pub async fn start(items: &[MetaItem], json: bool) -> anyhow::Result<()> {
         let image = Neo4JImage::new(item);
         let neo4j = Neo4JContainer::new(image);
         let display = item.short_name();
+        let expression = item.expression();
         let item = item.clone();
         let progress = match &multi_progress {
             Some(mp) => Progress::join(mp, &display),
@@ -60,7 +61,7 @@ pub async fn start(items: &[MetaItem], json: bool) -> anyhow::Result<()> {
                     Err(e) => progress.finish_error(&e.to_string()),
                 }
             }
-            (display, result, bolt, http)
+            (display, expression, result, bolt, http)
         });
     }
 
@@ -69,7 +70,7 @@ pub async fn start(items: &[MetaItem], json: bool) -> anyhow::Result<()> {
     if json {
         let command_results: Vec<CommandResult> = results
             .into_iter()
-            .map(|(identifier, result, bolt, http)| match result {
+            .map(|(_, identifier, result, bolt, http)| match result {
                 Ok(()) => CommandResult {
                     identifier,
                     success: true,
@@ -90,7 +91,7 @@ pub async fn start(items: &[MetaItem], json: bool) -> anyhow::Result<()> {
     } else {
         let status: Vec<CommandStatus> = results
             .iter()
-            .map(|(display, result, _, _)| CommandStatus::from_result(display, result))
+            .map(|(display, _, result, _, _)| CommandStatus::from_result(display, result))
             .collect();
         summary(count, &status);
         done(instant);

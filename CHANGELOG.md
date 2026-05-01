@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Use the original input expression as the identifier in JSON output for `start` and `stop` commands
+
 ## [0.2.3] - 2026-05-01
 
 ### Changed

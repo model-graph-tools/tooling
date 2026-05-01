@@ -14,21 +14,29 @@ use wildfly_meta::MetaItem;
 pub async fn stop(items: Option<&[MetaItem]>, all: bool, json: bool) -> anyhow::Result<()> {
     verify_container_command()?;
 
-    let container_names: Vec<String> = if all {
+    let containers: Vec<(String, String)> = if all {
         running_neo4j_containers()
             .await?
             .iter()
-            .map(|r| r.container.container_name())
+            .map(|r| {
+                (
+                    r.container.container_name(),
+                    r.container.image.item.expression(),
+                )
+            })
             .collect()
     } else {
         items
             .expect("Argument <identifier> expected!")
             .iter()
-            .map(|item| Neo4JContainer::new(Neo4JImage::new(item)).container_name())
+            .map(|item| {
+                let container_name = Neo4JContainer::new(Neo4JImage::new(item)).container_name();
+                (container_name, item.expression())
+            })
             .collect()
     };
 
-    if container_names.is_empty() {
+    if containers.is_empty() {
         if json {
             println!("[]");
         } else {
@@ -37,7 +45,7 @@ pub async fn stop(items: Option<&[MetaItem]>, all: bool, json: bool) -> anyhow::
         return Ok(());
     }
 
-    let count = container_names.len();
+    let count = containers.len();
     let multi_progress = if json {
         None
     } else {
@@ -56,20 +64,20 @@ pub async fn stop(items: Option<&[MetaItem]>, all: bool, json: bool) -> anyhow::
     let instant = Instant::now();
     let mut tasks = JoinSet::new();
 
-    for name in container_names {
+    for (container_name, expression) in containers {
         let progress = match &multi_progress {
-            Some(mp) => Progress::join(mp, &name),
-            None => Progress::hidden(&name),
+            Some(mp) => Progress::join(mp, &container_name),
+            None => Progress::hidden(&container_name),
         };
         tasks.spawn(async move {
-            let result = stop_container(&name).await;
+            let result = stop_container(&container_name).await;
             if !json {
                 match &result {
                     Ok(()) => progress.finish_success(Some("Stopped")),
                     Err(e) => progress.finish_error(&e.to_string()),
                 }
             }
-            (name, result)
+            (container_name, expression, result)
         });
     }
 
@@ -78,16 +86,16 @@ pub async fn stop(items: Option<&[MetaItem]>, all: bool, json: bool) -> anyhow::
     if json {
         let command_results: Vec<CommandResult> = results
             .into_iter()
-            .map(|(name, result)| match result {
+            .map(|(_, identifier, result)| match result {
                 Ok(()) => CommandResult {
-                    identifier: name,
+                    identifier,
                     success: true,
                     bolt: None,
                     http: None,
                     error: None,
                 },
                 Err(e) => CommandResult {
-                    identifier: name,
+                    identifier,
                     success: false,
                     bolt: None,
                     http: None,
@@ -99,7 +107,7 @@ pub async fn stop(items: Option<&[MetaItem]>, all: bool, json: bool) -> anyhow::
     } else {
         let status: Vec<CommandStatus> = results
             .iter()
-            .map(|(name, result)| CommandStatus::from_result(name, result))
+            .map(|(name, _, result)| CommandStatus::from_result(name, result))
             .collect();
         summary(count, &status);
         done(instant);
