@@ -178,8 +178,13 @@ pub async fn local_image_names() -> anyhow::Result<HashSet<String>> {
         .collect())
 }
 
-/// Pulls a container image, showing progress on the provided spinner.
+/// Pulls a container image only if it is not already available locally.
 pub async fn pull_image(image: &str, progress: &Progress) -> anyhow::Result<()> {
+    progress.show_progress(&format!("Checking {}...", image));
+    if local_image_names().await?.contains(image) {
+        progress.show_progress(&format!("{} already available", image));
+        return Ok(());
+    }
     progress.show_progress(&format!("Pulling {}...", image));
     let mut cmd = container_command()?;
     cmd.arg("pull")
@@ -198,7 +203,7 @@ pub async fn pull_image(image: &str, progress: &Progress) -> anyhow::Result<()> 
 }
 
 /// Maximum number of health check polling attempts before giving up.
-const MAX_HEALTHCHECK_ATTEMPTS: u32 = 60;
+const MAX_HEALTHCHECK_ATTEMPTS: u32 = 120;
 
 /// Polls a URL until it returns HTTP 200, retrying once per second.
 pub async fn healthcheck(url: &str, progress: &Progress) -> anyhow::Result<()> {

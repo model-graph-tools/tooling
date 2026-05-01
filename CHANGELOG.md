@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Skip pulling container images that are already available locally to avoid hitting Docker Hub rate limits
+
 ## [0.2.2] - 2026-04-30
 
 ### Changed
