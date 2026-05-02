@@ -89,6 +89,13 @@ pub fn build_app() -> Command {
                 .action(ArgAction::SetTrue)
                 .help("Show only feature packs")))
 
+        // resolve
+        .subcommand(Command::new("resolve")
+            .about("Resolve identifiers to their canonical form")
+            .arg(Arg::new("identifier")
+                .required(true)
+                .help("WildFly versions, feature packs, or a mix (e.g. 34,ai,graphql)")))
+
         // ps
         .subcommand(Command::new("ps")
             .about("List running model containers"))

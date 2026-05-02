@@ -15,6 +15,14 @@ pub struct ContainerInfo {
     pub id: String,
 }
 
+/// Resolved identifier for `mgt resolve --json`.
+#[derive(Serialize)]
+pub struct ResolveResult {
+    pub identifier: String,
+    pub source_type: String,
+    pub name: String,
+}
+
 /// Command result for `mgt start --json` and `mgt stop --json`.
 #[derive(Serialize)]
 pub struct CommandResult {
@@ -172,5 +180,55 @@ mod tests {
         let results: Vec<CommandResult> = vec![];
         let json_str = serde_json::to_string(&results).unwrap();
         assert_eq!(json_str, "[]");
+    }
+
+    #[test]
+    fn resolve_result_serializes_wildfly() {
+        let result = ResolveResult {
+            identifier: "39.0".into(),
+            source_type: "wildfly".into(),
+            name: "WildFly 39.0".into(),
+        };
+        let json: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&result).unwrap()).unwrap();
+        assert_eq!(json["identifier"], "39.0");
+        assert_eq!(json["source_type"], "wildfly");
+        assert_eq!(json["name"], "WildFly 39.0");
+    }
+
+    #[test]
+    fn resolve_result_serializes_feature_pack() {
+        let result = ResolveResult {
+            identifier: "ai:0.9.1".into(),
+            source_type: "feature-pack".into(),
+            name: "AI 0.9.1".into(),
+        };
+        let json: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&result).unwrap()).unwrap();
+        assert_eq!(json["identifier"], "ai:0.9.1");
+        assert_eq!(json["source_type"], "feature-pack");
+        assert_eq!(json["name"], "AI 0.9.1");
+    }
+
+    #[test]
+    fn resolve_result_array_serializes() {
+        let results = vec![
+            ResolveResult {
+                identifier: "39.0".into(),
+                source_type: "wildfly".into(),
+                name: "WildFly 39.0".into(),
+            },
+            ResolveResult {
+                identifier: "ai:0.9.1".into(),
+                source_type: "feature-pack".into(),
+                name: "AI 0.9.1".into(),
+            },
+        ];
+        let json: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&results).unwrap()).unwrap();
+        assert!(json.is_array());
+        assert_eq!(json.as_array().unwrap().len(), 2);
+        assert_eq!(json[0]["identifier"], "39.0");
+        assert_eq!(json[1]["identifier"], "ai:0.9.1");
     }
 }

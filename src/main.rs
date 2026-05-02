@@ -15,8 +15,8 @@ mod registry;
 
 use crate::args::{meta_item_argument, meta_items_argument};
 use crate::command::{
-    analyze, browse, completions, feature_packs_cmd, images, ps, push, start, stop, update,
-    versions,
+    analyze, browse, completions, feature_packs_cmd, images, ps, push, resolve, start, stop,
+    update, versions,
 };
 use crate::completion::{complete_multiple_identifiers, complete_single_identifier};
 use crate::registry::{images_registry, init_registries, packs_registry};
@@ -49,6 +49,12 @@ fn build_app_full() -> clap::Command {
             })
         })
         .mut_subcommand("stop", |sub_cmd| {
+            sub_cmd.mut_arg("identifier", |arg| {
+                arg.value_parser(parse_list)
+                    .add(ArgValueCompleter::new(complete_multiple_identifiers))
+            })
+        })
+        .mut_subcommand("resolve", |sub_cmd| {
             sub_cmd.mut_arg("identifier", |arg| {
                 arg.value_parser(parse_list)
                     .add(ArgValueCompleter::new(complete_multiple_identifiers))
@@ -95,6 +101,10 @@ async fn main() -> Result<()> {
             let wildfly = m.get_flag("wildfly");
             let feature_packs = m.get_flag("feature-packs");
             images(wildfly, feature_packs).await
+        }
+        Some(("resolve", m)) => {
+            resolve(&meta_items_argument(m), json);
+            Ok(())
         }
         Some(("ps", _)) => ps(json).await,
         Some(("browse", m)) => {
