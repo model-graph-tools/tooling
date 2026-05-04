@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-05-04
+
 ### Added
 - Add `install.sh` script for quick installation via `curl | sh` with automatic OS and architecture detection
 - Add `aarch64-apple-darwin` (Apple Silicon) build target to release workflow
@@ -89,7 +91,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release 🎉
 
-[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/model-graph-tools/tooling/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/model-graph-tools/tooling/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/model-graph-tools/tooling/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/model-graph-tools/tooling/compare/v0.2.2...v0.2.3
