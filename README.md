@@ -27,7 +27,19 @@
 
 # Installation
 
-[Precompiled binaries](https://github.com/model-graph-tools/tooling/releases) are available for macOS, Linux, and Windows.
+[Precompiled binaries](https://github.com/model-graph-tools/tooling/releases) are available for macOS (Intel & Apple Silicon), Linux, and Windows.
+
+## Quick Install
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/model-graph-tools/tooling/main/install.sh | sh
+```
+
+This detects your OS and architecture, downloads the latest binary, and installs it to `~/.local/bin`. To install to a different directory:
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/model-graph-tools/tooling/main/install.sh | MGT_INSTALL_DIR=/usr/local/bin sh
+```
 
 ## Brew
 
