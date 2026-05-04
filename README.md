@@ -32,13 +32,13 @@
 ## Quick Install
 
 ```shell
-curl -fsSL https://raw.githubusercontent.com/model-graph-tools/tooling/main/install.sh | sh
+curl -fsSL https://model-graph-tools.github.io/install.sh | sh
 ```
 
 This detects your OS and architecture, downloads the latest binary, and installs it to `~/.local/bin`. To install to a different directory:
 
 ```shell
-curl -fsSL https://raw.githubusercontent.com/model-graph-tools/tooling/main/install.sh | MGT_INSTALL_DIR=/usr/local/bin sh
+curl -fsSL https://model-graph-tools.github.io/install.sh | MGT_INSTALL_DIR=/usr/local/bin sh
 ```
 
 ## Brew

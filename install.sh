@@ -1,6 +1,6 @@
 #!/bin/sh
 # Install script for mgt - WildFly management model graph CLI
-# Usage: curl -fsSL https://raw.githubusercontent.com/model-graph-tools/tooling/main/install.sh | sh
+# Usage: curl -fsSL https://model-graph-tools.github.io/install.sh | sh
 
 set -eu
 
