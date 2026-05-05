@@ -110,7 +110,7 @@ pub(super) async fn run_wildfly_analysis(
     let neo4j = Neo4JContainer::new(neo4j_image);
     let network = network_name(item);
 
-    let wado_image_ref = format!("{}:{}.{}", WADO_SA_REPOSITORY, image.version, image.suffix);
+    let wado_image_ref = format!("{}:{}", WADO_SA_REPOSITORY, image.image_tag);
     let instances: Vec<AnalysisInstance> = configs
         .iter()
         .enumerate()

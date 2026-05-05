@@ -26,24 +26,11 @@ pub fn versions(json: bool) {
     for img in images_registry().all() {
         table.add_row(vec![
             Cell::new(img.short_name()).fg(Color::DarkMagenta),
-            Cell::new(format!("{}{}", img.version, suffix_display(&img.suffix))),
-            Cell::new(format!(
-                "{}{}",
-                img.core_version,
-                suffix_display(&img.suffix)
-            )),
+            Cell::new(&img.release_version),
+            Cell::new(&img.core_release_version),
             Cell::new(&img.repository).fg(Color::AnsiValue(248)),
         ]);
     }
 
     println!("\n{table}");
-}
-
-/// Formats a version suffix (e.g. `Final`) with a leading dot, or empty for no suffix.
-fn suffix_display(suffix: &str) -> String {
-    if suffix.is_empty() {
-        String::new()
-    } else {
-        format!(".{suffix}")
-    }
 }

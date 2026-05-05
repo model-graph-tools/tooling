@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Update `wildfly_meta` to 0.7.0
+- Use `image_tag` for container image references instead of constructing from `version` + `suffix`
+- Display `release_version` and `core_release_version` in `versions` command output
+- Remove `suffix_display()` helper
+
 ## [0.2.7] - 2026-05-05
 
 ### Changed
