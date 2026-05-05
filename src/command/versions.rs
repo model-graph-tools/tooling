@@ -18,7 +18,7 @@ pub fn versions(json: bool) {
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
             "Version",
-            "Full Version",
+            "WildFly Version",
             "WildFly Core",
             "Repository",
         ]);
