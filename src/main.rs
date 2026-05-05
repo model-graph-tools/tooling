@@ -70,12 +70,31 @@ fn build_app_full() -> clap::Command {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    init_registries().await?;
+    let registry_error = init_registries().await.err();
 
-    clap_complete::CompleteEnv::with_factory(build_app_full).complete();
+    if registry_error.is_none() {
+        clap_complete::CompleteEnv::with_factory(build_app_full).complete();
+    }
 
-    let matches = build_app_full().get_matches();
+    let matches = if registry_error.is_none() {
+        build_app_full().get_matches()
+    } else {
+        build_app().get_matches()
+    };
     let json = matches.get_flag("json");
+
+    // Registry-free commands: handle first, return early
+    match matches.subcommand() {
+        Some(("update", _)) => return update().await,
+        Some(("ps", _)) => return ps(json).await,
+        Some(("completions", m)) => return completions(m),
+        _ => {}
+    }
+
+    // All remaining commands require registries
+    if let Some(e) = registry_error {
+        return Err(e);
+    }
 
     match matches.subcommand() {
         Some(("analyze", m)) => analyze(&meta_item_argument(m)).await,
@@ -106,15 +125,12 @@ async fn main() -> Result<()> {
             resolve(&meta_items_argument(m), json);
             Ok(())
         }
-        Some(("ps", _)) => ps(json).await,
         Some(("browse", m)) => {
             for item in &meta_items_argument(m) {
                 browse(item)?;
             }
             Ok(())
         }
-        Some(("update", _)) => update().await,
-        Some(("completions", m)) => completions(m),
         _ => unreachable!("Unknown subcommand"),
     }
 }

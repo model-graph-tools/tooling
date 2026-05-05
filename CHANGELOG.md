@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Make registry initialization lazy so `update`, `ps`, `completions`, `--help`, and `--version` work without existing config files
+- Add `mgt update` post-install step to the shell install script to bootstrap config on first install
+
 ## [0.2.6] - 2026-05-04
 
 ### Added
