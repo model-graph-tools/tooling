@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-05-05
+
 ### Changed
 - Make registry initialization lazy so `update`, `ps`, `completions`, `--help`, and `--version` work without existing config files
 - Add `mgt update` post-install step to the shell install script to bootstrap config on first install
@@ -95,7 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release 🎉
 
-[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/model-graph-tools/tooling/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/model-graph-tools/tooling/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/model-graph-tools/tooling/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/model-graph-tools/tooling/compare/v0.2.3...v0.2.4
