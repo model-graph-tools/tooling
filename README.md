@@ -21,6 +21,7 @@
     - [images](#images)
     - [versions](#versions)
     - [feature-packs](#feature-packs)
+    - [resolve](#resolve)
     - [ps](#ps)
     - [completions](#completions)
     - [update](#update)
@@ -195,6 +196,15 @@ Lists all supported feature packs.
 
 ```shell
 mgt feature-packs
+```
+
+## resolve
+
+Resolves identifiers to their canonical form. Useful for scripting and verifying how `mgt` interprets version strings and feature pack shortcuts.
+
+```shell
+mgt resolve 34
+mgt resolve 34,ai,graphql
 ```
 
 ## ps

@@ -39,6 +39,8 @@ The codebase is organized into top-level modules and a `command/` submodule tree
 - **`neo4j.rs`** — Neo4J container, image, and port management.
 - **`registry.rs`** — Global `OnceLock`-based access to `wildfly_meta` registries for clap parsers.
 - **`download.rs`** — HTTP download helpers (analyzer JAR).
+- **`error.rs`** — Structured error types with stable error codes for machine-parseable JSON output.
+- **`json.rs`** — Serializable types for JSON output of container commands (`ps`, `start`, `stop`, `resolve`).
 - **`progress.rs`** — Progress bar and status display utilities.
 - **`completion.rs`** — Dynamic shell completion logic for identifiers.
 - **`label.rs`** — Display formatting for sources.
@@ -59,6 +61,7 @@ The codebase is organized into top-level modules and a `command/` submodule tree
 - **`versions.rs`** — List supported WildFly versions.
 - **`feature_packs.rs`** — List supported feature packs.
 - **`images.rs`** — List locally available Neo4J model DB images.
+- **`resolve.rs`** — Resolve identifiers to their canonical form.
 - **`ps.rs`** — List running Neo4J model DB containers.
 - **`update.rs`** — Update WildFly and feature pack configuration files from `wildfly_meta`.
 - **`completions.rs`** — Shell completion generation and installation.
