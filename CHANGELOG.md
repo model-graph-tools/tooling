@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `error_code` field on `CommandResult` for per-item error codes in `start`/`stop` JSON output
 
 ### Changed
+- Replace all `expect()` and `unwrap()` calls in production code with proper error propagation via `?` and `context()`
+- Use checked arithmetic for port offset calculation to prevent potential overflow
+- Log warnings instead of silencing errors in cleanup and log file deletion paths
+- Extract `CommandResult::success()` and `CommandResult::error()` constructors to reduce duplication in `start`/`stop` commands
+- Remove unnecessary `clone()` in push command by collecting references instead of owned values
+- Extract `PROGRESS_TEXT_MAX_WIDTH` constant for progress bar text truncation
+- Add `#[must_use]` attribute to `MgtError` struct
+- Add error context with file paths to download operations
+- Remove unused `MgtError::internal()` constructor
 - Replace all `bail!()` error sites in `container.rs` and `start.rs` with typed `MgtError` constructors carrying parameterized messages
 - Restructure `main.rs` to detect `--json` before clap parsing, use `try_get_matches()` to intercept parse errors, and wrap all errors as `JsonErrorEnvelope` in JSON mode
 - Classify clap `ValueValidation` errors as `UNKNOWN_IDENTIFIER` for better machine error handling

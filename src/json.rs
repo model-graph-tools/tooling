@@ -1,6 +1,6 @@
 //! Serializable types for JSON output of container commands.
 
-use crate::error::MgtErrorCode;
+use crate::error::{MgtError, MgtErrorCode};
 use serde::Serialize;
 
 /// Running container info for `mgt ps --json`.
@@ -37,6 +37,30 @@ pub struct CommandResult {
     pub error: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error_code: Option<MgtErrorCode>,
+}
+
+impl CommandResult {
+    pub fn success(identifier: String, bolt: Option<u16>, http: Option<u16>) -> Self {
+        Self {
+            identifier,
+            success: true,
+            bolt,
+            http,
+            error: None,
+            error_code: None,
+        }
+    }
+
+    pub fn error(identifier: String, err: &anyhow::Error) -> Self {
+        Self {
+            identifier,
+            success: false,
+            bolt: None,
+            http: None,
+            error_code: Some(MgtError::error_code(err)),
+            error: Some(err.to_string()),
+        }
+    }
 }
 
 #[cfg(test)]

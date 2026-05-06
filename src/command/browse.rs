@@ -10,7 +10,7 @@ pub fn browse(item: &MetaItem) -> anyhow::Result<()> {
     verify_container_command()?;
 
     let image = Neo4JImage::new(item);
-    let neo4j = Neo4JContainer::new(image);
+    let neo4j = Neo4JContainer::new(image)?;
     let url = format!(
         "http://localhost:{}/browser?dbms=bolt://localhost:{}",
         neo4j.ports.http, neo4j.ports.bolt

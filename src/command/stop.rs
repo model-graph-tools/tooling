@@ -1,7 +1,8 @@
 //! Stops running Neo4J model DB containers.
 
+use anyhow::Context;
+
 use crate::container::{running_neo4j_containers, stop_container, verify_container_command};
-use crate::error::MgtError;
 use crate::json::CommandResult;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
@@ -28,13 +29,13 @@ pub async fn stop(items: Option<&[MetaItem]>, all: bool, json: bool) -> anyhow::
             .collect()
     } else {
         items
-            .expect("Argument <identifier> expected!")
+            .ok_or_else(|| anyhow::anyhow!("Argument <identifier> expected"))?
             .iter()
             .map(|item| {
-                let container_name = Neo4JContainer::new(Neo4JImage::new(item)).container_name();
-                (container_name, item.expression())
+                let container_name = Neo4JContainer::new(Neo4JImage::new(item))?.container_name();
+                Ok((container_name, item.expression()))
             })
-            .collect()
+            .collect::<anyhow::Result<Vec<_>>>()?
     };
 
     if containers.is_empty() {
@@ -88,25 +89,14 @@ pub async fn stop(items: Option<&[MetaItem]>, all: bool, json: bool) -> anyhow::
         let command_results: Vec<CommandResult> = results
             .into_iter()
             .map(|(_, identifier, result)| match result {
-                Ok(()) => CommandResult {
-                    identifier,
-                    success: true,
-                    bolt: None,
-                    http: None,
-                    error: None,
-                    error_code: None,
-                },
-                Err(e) => CommandResult {
-                    identifier,
-                    success: false,
-                    bolt: None,
-                    http: None,
-                    error_code: Some(MgtError::error_code(&e)),
-                    error: Some(e.to_string()),
-                },
+                Ok(()) => CommandResult::success(identifier, None, None),
+                Err(e) => CommandResult::error(identifier, &e),
             })
             .collect();
-        println!("{}", serde_json::to_string(&command_results).unwrap());
+        println!(
+            "{}",
+            serde_json::to_string(&command_results).context("Failed to serialize JSON output")?
+        );
     } else {
         let status: Vec<CommandStatus> = results
             .iter()

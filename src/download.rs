@@ -1,7 +1,7 @@
 //! File download utility with progress reporting and local caching.
 
 use crate::progress::Progress;
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use std::env::temp_dir;
 use std::fs::File;
 use std::io::Write;
@@ -23,9 +23,14 @@ pub async fn download_file(
     progress.show_progress(&format!("Downloading {filename}..."));
     let response = reqwest::get(url).await?;
     if response.status().is_success() {
-        let mut file = File::create(&path)?;
-        let content = response.bytes().await?;
-        file.write_all(&content)?;
+        let mut file =
+            File::create(&path).context(format!("Failed to create {}", path.display()))?;
+        let content = response
+            .bytes()
+            .await
+            .context(format!("Failed to download content from {url}"))?;
+        file.write_all(&content)
+            .context(format!("Failed to write to {}", path.display()))?;
         Ok(path)
     } else {
         Err(anyhow!("Failed to download {}: {}", url, response.status()))

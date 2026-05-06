@@ -1,11 +1,12 @@
 //! Starts Neo4J containers from pre-built images.
 
 use crate::container::{container_command, healthcheck, pull_image, verify_container_command};
+use crate::error::MgtError;
 use crate::json::CommandResult;
 use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
-use crate::error::MgtError;
+use anyhow::Context;
 use console::style;
 use indicatif::MultiProgress;
 use std::process::Stdio;
@@ -38,7 +39,7 @@ pub async fn start(items: &[MetaItem], json: bool) -> anyhow::Result<()> {
 
     for item in items {
         let image = Neo4JImage::new(item);
-        let neo4j = Neo4JContainer::new(image);
+        let neo4j = Neo4JContainer::new(image)?;
         let display = item.short_name();
         let expression = item.expression();
         let item = item.clone();
@@ -71,25 +72,14 @@ pub async fn start(items: &[MetaItem], json: bool) -> anyhow::Result<()> {
         let command_results: Vec<CommandResult> = results
             .into_iter()
             .map(|(_, identifier, result, bolt, http)| match result {
-                Ok(()) => CommandResult {
-                    identifier,
-                    success: true,
-                    bolt: Some(bolt),
-                    http: Some(http),
-                    error: None,
-                    error_code: None,
-                },
-                Err(e) => CommandResult {
-                    identifier,
-                    success: false,
-                    bolt: None,
-                    http: None,
-                    error_code: Some(MgtError::error_code(&e)),
-                    error: Some(e.to_string()),
-                },
+                Ok(()) => CommandResult::success(identifier, Some(bolt), Some(http)),
+                Err(e) => CommandResult::error(identifier, &e),
             })
             .collect();
-        println!("{}", serde_json::to_string(&command_results).unwrap());
+        println!(
+            "{}",
+            serde_json::to_string(&command_results).context("Failed to serialize JSON output")?
+        );
     } else {
         let status: Vec<CommandStatus> = results
             .iter()

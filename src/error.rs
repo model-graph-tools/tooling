@@ -27,6 +27,7 @@ pub enum MgtErrorCode {
 /// A typed error that carries both a stable code and a human-readable message.
 #[derive(Debug, thiserror::Error)]
 #[error("{message}")]
+#[must_use]
 pub struct MgtError {
     pub code: MgtErrorCode,
     pub message: String,
@@ -112,14 +113,6 @@ impl MgtError {
             message: details.to_string(),
         }
     }
-
-    pub fn internal(details: &str) -> Self {
-        Self {
-            code: MgtErrorCode::Internal,
-            message: details.to_string(),
-        }
-    }
-
     pub fn error_code(err: &anyhow::Error) -> MgtErrorCode {
         err.downcast_ref::<MgtError>()
             .map(|e| e.code)
@@ -211,10 +204,12 @@ mod tests {
         let json: serde_json::Value =
             serde_json::from_str(&serde_json::to_string(&envelope).unwrap()).unwrap();
         assert_eq!(json["error"]["code"], "REGISTRY_INIT_FAILED");
-        assert!(json["error"]["message"]
-            .as_str()
-            .unwrap()
-            .contains("network timeout"));
+        assert!(
+            json["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains("network timeout")
+        );
     }
 
     #[test]

@@ -79,7 +79,9 @@ pub(super) async fn cleanup_minimal(neo4j: &Neo4JContainer, network: &str) -> Ve
 /// Removes the Neo4J container, its data volume, and the container network.
 async fn cleanup_neo4j_and_network(neo4j: &Neo4JContainer, network: &str) -> Vec<CommandStatus> {
     let neo4j_container = neo4j.container_name();
-    let _ = stop_container(&neo4j_container).await;
+    if let Err(e) = stop_container(&neo4j_container).await {
+        eprintln!("Warning: failed to stop container {neo4j_container}: {e}");
+    }
     vec![
         cleanup_resource(&neo4j_container, remove_container(&neo4j_container).await),
         cleanup_resource(

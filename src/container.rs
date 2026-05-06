@@ -1,10 +1,10 @@
 //! Container runtime abstraction (podman/docker) and common operations.
 
+use crate::error::MgtError;
 use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage, RunningNeo4JContainer};
 use crate::progress::Progress;
 use crate::registry::{images_registry, packs_registry};
-use crate::error::MgtError;
 use anyhow::Error;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -132,7 +132,7 @@ pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContai
                 let name = source_name_label.parse_value(parts[3])?;
                 let item = parse_meta_item(&name, images_registry(), packs_registry()).ok()?;
                 let image = Neo4JImage::new(&item);
-                let container = Neo4JContainer::new(image);
+                let container = Neo4JContainer::new(image).ok()?;
                 Some(RunningNeo4JContainer {
                     container,
                     id: parts[0].to_string(),

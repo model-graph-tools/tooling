@@ -27,7 +27,7 @@ pub(super) async fn run_feature_pack_analysis(
     item: &MetaItem,
 ) -> anyhow::Result<()> {
     let neo4j_image = Neo4JImage::new(item);
-    let neo4j = Neo4JContainer::new(neo4j_image);
+    let neo4j = Neo4JContainer::new(neo4j_image)?;
     let network = network_name(item);
 
     create_network(&network).await?;

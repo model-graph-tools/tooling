@@ -7,7 +7,7 @@
 use crate::container::container_command;
 use crate::download::download_file;
 use crate::progress::Progress;
-use anyhow::bail;
+use anyhow::{Context, bail};
 use console::style;
 use std::collections::VecDeque;
 use std::env::temp_dir;
@@ -23,7 +23,9 @@ use crate::neo4j::Neo4JContainer;
 /// Container image used to run the analyzer JAR.
 pub(super) const ANALYZER_IMAGE: &str = "eclipse-temurin:25-jre";
 
-/// Maximum number of lines kept in the error ring buffer for failure diagnostics.
+/// Maximum number of recent output lines kept for failure diagnostics.
+/// When the analyzer fails, the last N lines are printed to help identify the cause
+/// without overwhelming the terminal with the full log.
 const ERROR_BUFFER_CAPACITY: usize = 20;
 
 /// Downloads the analyzer JAR to a temporary directory.
@@ -98,7 +100,9 @@ pub(super) async fn run_analyzer(
         );
     }
 
-    let _ = fs::remove_file(&log_path);
+    if let Err(e) = fs::remove_file(&log_path) {
+        eprintln!("Warning: failed to remove log file {}: {e}", log_path.display());
+    }
     Ok(())
 }
 
@@ -162,7 +166,9 @@ pub(super) async fn run_doc_zip_analyzer(
         );
     }
 
-    let _ = fs::remove_file(&log_path);
+    if let Err(e) = fs::remove_file(&log_path) {
+        eprintln!("Warning: failed to remove log file {}: {e}", log_path.display());
+    }
     Ok(())
 }
 
@@ -174,8 +180,8 @@ async fn stream_output(
     error_buffer: &mut VecDeque<String>,
     progress: &Progress,
 ) -> anyhow::Result<()> {
-    let stdout = child.stdout.take().expect("stdout should be piped");
-    let stderr = child.stderr.take().expect("stderr should be piped");
+    let stdout = child.stdout.take().context("stdout not piped")?;
+    let stderr = child.stderr.take().context("stderr not piped")?;
     let mut stdout_lines = tokio::io::BufReader::new(stdout).lines();
     let mut stderr_lines = tokio::io::BufReader::new(stderr).lines();
     let mut stdout_done = false;

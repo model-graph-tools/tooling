@@ -11,6 +11,9 @@ use tokio::time::Instant;
 /// Column width for left-aligning progress bar names.
 const NAME_WIDTH: usize = 30;
 
+/// Maximum width for progress status text before truncation.
+const PROGRESS_TEXT_MAX_WIDTH: usize = 80;
+
 static COG: Emoji<'_, '_> = Emoji("\u{2699}\u{fe0f}  ", ""); // step 1: prepare
 static MAG: Emoji<'_, '_> = Emoji("\u{1f50d}  ", ""); // step 2: analyze
 static PACKAGE: Emoji<'_, '_> = Emoji("\u{1f4e6}  ", ""); // step 3: build
@@ -168,12 +171,15 @@ impl Progress {
     where
         R: tokio::io::AsyncRead + Unpin,
     {
-        while let Some(line) = reader
-            .next_line()
-            .await
-            .expect("Unable to read output from command.")
-        {
-            self.show_progress(line.as_str());
+        loop {
+            match reader.next_line().await {
+                Ok(Some(line)) => self.show_progress(line.as_str()),
+                Ok(None) => break,
+                Err(e) => {
+                    eprintln!("Warning: failed to read command output: {e}");
+                    break;
+                }
+            }
         }
     }
 
@@ -208,7 +214,7 @@ impl Progress {
         self.bar.set_message(format!(
             "{} {}",
             style(padded).cyan(),
-            style(truncate_str(text, 80, "...")).dim()
+            style(truncate_str(text, PROGRESS_TEXT_MAX_WIDTH, "...")).dim()
         ));
     }
 
@@ -248,10 +254,12 @@ impl Progress {
 // ------------------------------------------------------ stderr
 
 /// Takes stderr from a child process and returns a line-buffered async reader.
-pub fn stderr_reader(child: &mut tokio::process::Child) -> Lines<BufReader<ChildStderr>> {
+pub fn stderr_reader(
+    child: &mut tokio::process::Child,
+) -> anyhow::Result<Lines<BufReader<ChildStderr>>> {
     let stderr = child
         .stderr
         .take()
-        .expect("Command did not have a handle to stderr.");
-    BufReader::new(stderr).lines()
+        .ok_or_else(|| anyhow::anyhow!("Command did not have a handle to stderr"))?;
+    Ok(BufReader::new(stderr).lines())
 }

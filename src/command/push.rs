@@ -16,7 +16,7 @@ pub async fn push(items: &[MetaItem], chunk_size: u16) -> anyhow::Result<()> {
     verify_container_command()?;
 
     let local = local_image_names().await?;
-    let pushable: Vec<_> = items
+    let pushable: Vec<&MetaItem> = items
         .iter()
         .filter(|item| {
             let tag = Neo4JImage::new(item).image_tag();
@@ -31,7 +31,6 @@ pub async fn push(items: &[MetaItem], chunk_size: u16) -> anyhow::Result<()> {
                 false
             }
         })
-        .cloned()
         .collect();
 
     if pushable.is_empty() {
@@ -62,7 +61,7 @@ pub async fn push(items: &[MetaItem], chunk_size: u16) -> anyhow::Result<()> {
 }
 
 /// Pushes a batch of images in parallel.
-async fn push_batch(items: &[MetaItem]) -> anyhow::Result<Vec<CommandStatus>> {
+async fn push_batch(items: &[&MetaItem]) -> anyhow::Result<Vec<CommandStatus>> {
     let multi_progress = MultiProgress::new();
     let mut tasks = JoinSet::new();
 
@@ -79,8 +78,8 @@ async fn push_batch(items: &[MetaItem]) -> anyhow::Result<Vec<CommandStatus>> {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
-        let mut child = cmd.spawn().expect("Unable to run container push command.");
-        let stderr = stderr_reader(&mut child);
+        let mut child = cmd.spawn()?;
+        let stderr = stderr_reader(&mut child)?;
         let progress_clone = progress.clone();
 
         tasks.spawn(async move {

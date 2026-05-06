@@ -76,7 +76,10 @@ async fn main() {
     if let Err(e) = run(json).await {
         if json {
             let envelope = JsonErrorEnvelope::from_anyhow(&e);
-            println!("{}", serde_json::to_string(&envelope).unwrap());
+            match serde_json::to_string(&envelope) {
+                Ok(json) => println!("{json}"),
+                Err(ser) => eprintln!("Error: {e:#}\n(JSON serialization also failed: {ser})"),
+            }
         } else {
             eprintln!("Error: {e:#}");
         }
@@ -159,7 +162,7 @@ fn classify_clap_error(err: clap::Error) -> anyhow::Error {
         clap::error::ErrorKind::ValueValidation => {
             MgtError::unknown_identifier(err.to_string().trim()).into()
         }
-        _ => MgtError::clap_parse_error(err.to_string().trim()).into()
+        _ => MgtError::clap_parse_error(err.to_string().trim()).into(),
     }
 }
 

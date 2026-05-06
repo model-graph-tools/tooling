@@ -107,7 +107,7 @@ pub(super) async fn run_wildfly_analysis(
 ) -> anyhow::Result<()> {
     let configs = wildfly_configurations(image);
     let neo4j_image = Neo4JImage::new(item);
-    let neo4j = Neo4JContainer::new(neo4j_image);
+    let neo4j = Neo4JContainer::new(neo4j_image)?;
     let network = network_name(item);
 
     let wado_image_ref = format!("{}:{}", WADO_SA_REPOSITORY, image.image_tag);

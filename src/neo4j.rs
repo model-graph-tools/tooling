@@ -20,12 +20,16 @@ pub struct Ports {
 
 impl Ports {
     /// Computes default bolt (6000+offset) and http (7000+offset) ports.
-    pub fn default_ports(item: &MetaItem) -> Ports {
+    pub fn default_ports(item: &MetaItem) -> anyhow::Result<Ports> {
         let offset = item.port_offset();
-        Ports {
-            bolt: 6000 + offset,
-            http: 7000 + offset,
-        }
+        Ok(Ports {
+            bolt: 6000u16
+                .checked_add(offset)
+                .ok_or_else(|| anyhow::anyhow!("Port offset {offset} too large for bolt port"))?,
+            http: 7000u16
+                .checked_add(offset)
+                .ok_or_else(|| anyhow::anyhow!("Port offset {offset} too large for http port"))?,
+        })
     }
 }
 
@@ -128,9 +132,9 @@ pub struct Neo4JContainer {
 
 impl Neo4JContainer {
     /// Creates a container with default ports derived from the image's source.
-    pub fn new(image: Neo4JImage) -> Neo4JContainer {
-        let ports = Ports::default_ports(&image.item);
-        Neo4JContainer { image, ports }
+    pub fn new(image: Neo4JImage) -> anyhow::Result<Neo4JContainer> {
+        let ports = Ports::default_ports(&image.item)?;
+        Ok(Neo4JContainer { image, ports })
     }
 
     /// Returns the container name (e.g. `mgt-neo4j-340`).
