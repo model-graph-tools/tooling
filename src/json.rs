@@ -1,5 +1,6 @@
 //! Serializable types for JSON output of container commands.
 
+use crate::error::MgtErrorCode;
 use serde::Serialize;
 
 /// Running container info for `mgt ps --json`.
@@ -34,6 +35,8 @@ pub struct CommandResult {
     pub http: Option<u16>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<MgtErrorCode>,
 }
 
 #[cfg(test)]
@@ -104,6 +107,7 @@ mod tests {
             bolt: None,
             http: None,
             error: None,
+            error_code: None,
         };
         let json_str = serde_json::to_string(&result).unwrap();
         let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
@@ -112,6 +116,7 @@ mod tests {
         assert!(json.get("bolt").is_none());
         assert!(json.get("http").is_none());
         assert!(json.get("error").is_none());
+        assert!(json.get("error_code").is_none());
     }
 
     #[test]
@@ -122,6 +127,7 @@ mod tests {
             bolt: Some(6390),
             http: Some(7390),
             error: None,
+            error_code: None,
         };
         let json: serde_json::Value =
             serde_json::from_str(&serde_json::to_string(&result).unwrap()).unwrap();
@@ -139,11 +145,13 @@ mod tests {
             bolt: None,
             http: None,
             error: Some("Failed to pull image: not found".into()),
+            error_code: Some(MgtErrorCode::ImagePullFailed),
         };
         let json: serde_json::Value =
             serde_json::from_str(&serde_json::to_string(&result).unwrap()).unwrap();
         assert_eq!(json["success"], false);
         assert_eq!(json["error"], "Failed to pull image: not found");
+        assert_eq!(json["error_code"], "IMAGE_PULL_FAILED");
         assert!(json.get("bolt").is_none());
     }
 
@@ -156,6 +164,7 @@ mod tests {
                 bolt: Some(6390),
                 http: Some(7390),
                 error: None,
+                error_code: None,
             },
             CommandResult {
                 identifier: "99.0".into(),
@@ -163,6 +172,7 @@ mod tests {
                 bolt: None,
                 http: None,
                 error: Some("not found".into()),
+                error_code: Some(MgtErrorCode::Internal),
             },
         ];
         let json: serde_json::Value =

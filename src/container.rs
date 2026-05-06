@@ -4,7 +4,8 @@ use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage, RunningNeo4JContainer};
 use crate::progress::Progress;
 use crate::registry::{images_registry, packs_registry};
-use anyhow::{Error, bail};
+use crate::error::MgtError;
+use anyhow::Error;
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -18,7 +19,7 @@ use wildfly_meta::{MetaItem, parse_meta_item};
 pub fn verify_container_command() -> Result<PathBuf, Error> {
     which("podman")
         .or_else(|_| which("docker"))
-        .map_err(|_| anyhow::anyhow!("podman or docker not found"))
+        .map_err(|_| MgtError::container_runtime_not_found().into())
 }
 
 /// Returns a `Command` pre-configured with the container runtime (podman or docker).
@@ -28,7 +29,7 @@ pub fn container_command() -> anyhow::Result<Command> {
     } else if let Ok(docker_path) = which("docker") {
         Ok(Command::new(docker_path))
     } else {
-        bail!("podman or docker not found")
+        Err(MgtError::container_runtime_not_found().into())
     }
 }
 
@@ -54,7 +55,7 @@ pub async fn create_network(name: &str) -> anyhow::Result<()> {
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         if !stderr.contains("already exists") {
-            bail!("Failed to create network {}: {}", name, stderr);
+            return Err(MgtError::network_create_failed(name, stderr.trim_end()).into());
         }
     }
     Ok(())
@@ -69,11 +70,8 @@ pub async fn run_container_cmd(args: &[&str], error_context: &str) -> anyhow::Re
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
     let output = cmd.output().await?;
     if !output.status.success() {
-        bail!(
-            "{}: {}",
-            error_context,
-            String::from_utf8_lossy(&output.stderr)
-        );
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(MgtError::container_command_failed(error_context, stderr.trim_end()).into());
     }
     Ok(())
 }
@@ -122,10 +120,8 @@ pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContai
         .stderr(Stdio::piped());
     let output = cmd.output().await?;
     if !output.status.success() {
-        bail!(
-            "Failed to list containers: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(MgtError::container_list_failed(stderr.trim_end()).into());
     }
     let mut containers: Vec<RunningNeo4JContainer> = String::from_utf8_lossy(&output.stdout)
         .lines()
@@ -167,10 +163,8 @@ pub async fn local_image_names() -> anyhow::Result<HashSet<String>> {
         .stderr(Stdio::piped());
     let output = cmd.output().await?;
     if !output.status.success() {
-        bail!(
-            "Failed to list images: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(MgtError::image_list_failed(stderr.trim_end()).into());
     }
     Ok(String::from_utf8_lossy(&output.stdout)
         .lines()
@@ -193,11 +187,8 @@ pub async fn pull_image(image: &str, progress: &Progress) -> anyhow::Result<()> 
         .stderr(Stdio::piped());
     let output = cmd.output().await?;
     if !output.status.success() {
-        bail!(
-            "Failed to pull image {}: {}",
-            image,
-            String::from_utf8_lossy(&output.stderr)
-        );
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(MgtError::image_pull_failed(image, stderr.trim_end()).into());
     }
     Ok(())
 }
@@ -220,9 +211,5 @@ pub async fn healthcheck(url: &str, progress: &Progress) -> anyhow::Result<()> {
         }
         sleep(Duration::from_secs(1)).await;
     }
-    bail!(
-        "Healthcheck failed after {} attempts: {}",
-        MAX_HEALTHCHECK_ATTEMPTS,
-        url
-    )
+    Err(MgtError::healthcheck_failed(url, MAX_HEALTHCHECK_ATTEMPTS).into())
 }

@@ -5,7 +5,7 @@ use crate::json::CommandResult;
 use crate::label::Label;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
-use anyhow::bail;
+use crate::error::MgtError;
 use console::style;
 use indicatif::MultiProgress;
 use std::process::Stdio;
@@ -77,12 +77,14 @@ pub async fn start(items: &[MetaItem], json: bool) -> anyhow::Result<()> {
                     bolt: Some(bolt),
                     http: Some(http),
                     error: None,
+                    error_code: None,
                 },
                 Err(e) => CommandResult {
                     identifier,
                     success: false,
                     bolt: None,
                     http: None,
+                    error_code: Some(MgtError::error_code(&e)),
                     error: Some(e.to_string()),
                 },
             })
@@ -136,10 +138,8 @@ async fn start_neo4j(
         .stderr(Stdio::piped());
     let output = cmd.output().await?;
     if !output.status.success() {
-        bail!(
-            "Failed to start Neo4J: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(MgtError::container_start_failed(stderr.trim_end()).into());
     }
 
     progress.show_progress("Waiting for Neo4J...");

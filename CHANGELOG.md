@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Structured error codes via `MgtError` enum with 13 typed variants (`CONTAINER_RUNTIME_NOT_FOUND`, `UNKNOWN_IDENTIFIER`, `IMAGE_PULL_FAILED`, etc.) for stable machine-parseable error reporting
+- `JsonErrorEnvelope` for top-level JSON error output when `--json` is active — printed to stdout with exit code 1
+- `error_code` field on `CommandResult` for per-item error codes in `start`/`stop` JSON output
+
+### Changed
+- Replace all `bail!()` error sites in `container.rs` and `start.rs` with typed `MgtError` constructors carrying parameterized messages
+- Restructure `main.rs` to detect `--json` before clap parsing, use `try_get_matches()` to intercept parse errors, and wrap all errors as `JsonErrorEnvelope` in JSON mode
+- Classify clap `ValueValidation` errors as `UNKNOWN_IDENTIFIER` for better machine error handling
+
 ## [0.2.8] - 2026-05-05
 
 ### Changed

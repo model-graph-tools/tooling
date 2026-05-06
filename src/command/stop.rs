@@ -1,6 +1,7 @@
 //! Stops running Neo4J model DB containers.
 
 use crate::container::{running_neo4j_containers, stop_container, verify_container_command};
+use crate::error::MgtError;
 use crate::json::CommandResult;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{CommandStatus, Progress, done, summary};
@@ -93,12 +94,14 @@ pub async fn stop(items: Option<&[MetaItem]>, all: bool, json: bool) -> anyhow::
                     bolt: None,
                     http: None,
                     error: None,
+                    error_code: None,
                 },
                 Err(e) => CommandResult {
                     identifier,
                     success: false,
                     bolt: None,
                     http: None,
+                    error_code: Some(MgtError::error_code(&e)),
                     error: Some(e.to_string()),
                 },
             })

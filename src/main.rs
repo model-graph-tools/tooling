@@ -7,6 +7,7 @@ mod completion;
 mod constants;
 mod container;
 mod download;
+mod error;
 mod json;
 mod label;
 mod neo4j;
@@ -19,6 +20,7 @@ use crate::command::{
     update, versions,
 };
 use crate::completion::{complete_multiple_identifiers, complete_single_identifier};
+use crate::error::{JsonErrorEnvelope, MgtError};
 use crate::registry::{images_registry, init_registries, packs_registry};
 use anyhow::Result;
 use app::build_app;
@@ -69,19 +71,36 @@ fn build_app_full() -> clap::Command {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() {
+    let json = std::env::args().any(|a| a == "--json");
+    if let Err(e) = run(json).await {
+        if json {
+            let envelope = JsonErrorEnvelope::from_anyhow(&e);
+            println!("{}", serde_json::to_string(&envelope).unwrap());
+        } else {
+            eprintln!("Error: {e:#}");
+        }
+        std::process::exit(1);
+    }
+}
+
+async fn run(json: bool) -> Result<()> {
     let registry_error = init_registries().await.err();
 
     if registry_error.is_none() {
         clap_complete::CompleteEnv::with_factory(build_app_full).complete();
     }
 
-    let matches = if registry_error.is_none() {
-        build_app_full().get_matches()
+    let app = if registry_error.is_none() {
+        build_app_full()
     } else {
-        build_app().get_matches()
+        build_app()
     };
-    let json = matches.get_flag("json");
+    let matches = match app.try_get_matches() {
+        Ok(m) => m,
+        Err(e) if json && e.use_stderr() => return Err(classify_clap_error(e)),
+        Err(e) => e.exit(),
+    };
 
     // Registry-free commands: handle first, return early
     match matches.subcommand() {
@@ -93,7 +112,7 @@ async fn main() -> Result<()> {
 
     // All remaining commands require registries
     if let Some(e) = registry_error {
-        return Err(e);
+        return Err(MgtError::registry_init_failed(&e.to_string()).into());
     }
 
     match matches.subcommand() {
@@ -132,6 +151,15 @@ async fn main() -> Result<()> {
             Ok(())
         }
         _ => unreachable!("Unknown subcommand"),
+    }
+}
+
+fn classify_clap_error(err: clap::Error) -> anyhow::Error {
+    match err.kind() {
+        clap::error::ErrorKind::ValueValidation => {
+            MgtError::unknown_identifier(err.to_string().trim()).into()
+        }
+        _ => MgtError::clap_parse_error(err.to_string().trim()).into()
     }
 }
 
