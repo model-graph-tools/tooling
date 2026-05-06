@@ -101,7 +101,10 @@ pub(super) async fn run_analyzer(
     }
 
     if let Err(e) = fs::remove_file(&log_path) {
-        eprintln!("Warning: failed to remove log file {}: {e}", log_path.display());
+        eprintln!(
+            "Warning: failed to remove log file {}: {e}",
+            log_path.display()
+        );
     }
     Ok(())
 }
@@ -167,7 +170,10 @@ pub(super) async fn run_doc_zip_analyzer(
     }
 
     if let Err(e) = fs::remove_file(&log_path) {
-        eprintln!("Warning: failed to remove log file {}: {e}", log_path.display());
+        eprintln!(
+            "Warning: failed to remove log file {}: {e}",
+            log_path.display()
+        );
     }
     Ok(())
 }
