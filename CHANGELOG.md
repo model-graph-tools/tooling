@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Pass `--stability=experimental` when starting WildFly >= 31 for analysis, ensuring all resources (experimental, preview, community, default) are captured in the model database
+
+### Changed
+- Update `wildfly_meta` to 0.7.1
+
 ## [0.3.0] - 2026-05-06
 
 ### Added
