@@ -130,7 +130,9 @@ pub async fn running_neo4j_containers() -> anyhow::Result<Vec<RunningNeo4JContai
             let parts: Vec<&str> = line.splitn(4, '|').collect();
             if parts.len() == 4 {
                 let name = source_name_label.parse_value(parts[3])?;
-                let item = parse_meta_item(&name, images_registry(), packs_registry()).ok()?;
+                let images = images_registry().ok()?;
+                let packs = packs_registry().ok()?;
+                let item = parse_meta_item(&name, images, packs).ok()?;
                 let image = Neo4JImage::new(&item);
                 let container = Neo4JContainer::new(image).ok()?;
                 Some(RunningNeo4JContainer {

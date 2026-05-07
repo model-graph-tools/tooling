@@ -22,7 +22,7 @@ use crate::command::{
 use crate::completion::{complete_multiple_identifiers, complete_single_identifier};
 use crate::error::{JsonErrorEnvelope, MgtError};
 use crate::registry::{images_registry, init_registries, packs_registry};
-use anyhow::Result;
+use anyhow::{Result, bail};
 use app::build_app;
 use clap_complete::engine::ArgValueCompleter;
 use wildfly_meta::{DslOptions, MetaItem, parse_meta_item, parse_meta_items};
@@ -119,41 +119,32 @@ async fn run(json: bool) -> Result<()> {
     }
 
     match matches.subcommand() {
-        Some(("analyze", m)) => analyze(&meta_item_argument(m)).await,
+        Some(("analyze", m)) => analyze(&meta_item_argument(m)?).await,
         Some(("push", m)) => {
             let chunk_size = m.get_one::<u16>("chunks").copied().unwrap_or(0);
-            push(&meta_items_argument(m), chunk_size).await
+            push(&meta_items_argument(m)?, chunk_size).await
         }
-        Some(("start", m)) => start(&meta_items_argument(m), json).await,
+        Some(("start", m)) => start(&meta_items_argument(m)?, json).await,
         Some(("stop", m)) => {
             let all = m.get_flag("all");
             let items = m.get_one::<Vec<MetaItem>>("identifier");
             stop(items.map(|v| v.as_slice()), all, json).await
         }
-        Some(("versions", _)) => {
-            versions(json);
-            Ok(())
-        }
-        Some(("feature-packs", _)) => {
-            feature_packs_cmd(json);
-            Ok(())
-        }
+        Some(("versions", _)) => versions(json),
+        Some(("feature-packs", _)) => feature_packs_cmd(json),
         Some(("images", m)) => {
             let wildfly = m.get_flag("wildfly");
             let feature_packs = m.get_flag("feature-packs");
             images(wildfly, feature_packs).await
         }
-        Some(("resolve", m)) => {
-            resolve(&meta_items_argument(m), json);
-            Ok(())
-        }
+        Some(("resolve", m)) => resolve(&meta_items_argument(m)?, json),
         Some(("browse", m)) => {
-            for item in &meta_items_argument(m) {
+            for item in &meta_items_argument(m)? {
                 browse(item)?;
             }
             Ok(())
         }
-        _ => unreachable!("Unknown subcommand"),
+        _ => bail!("Unknown subcommand"),
     }
 }
 
@@ -170,15 +161,19 @@ fn classify_clap_error(err: clap::Error) -> anyhow::Error {
 
 /// Clap value parser that converts a CLI string into a single [`MetaItem`].
 fn parse_single(input: &str) -> Result<MetaItem, String> {
-    parse_meta_item(input, images_registry(), packs_registry()).map_err(|err| err.to_string())
+    let images = images_registry().map_err(|e| e.to_string())?;
+    let packs = packs_registry().map_err(|e| e.to_string())?;
+    parse_meta_item(input, images, packs).map_err(|err| err.to_string())
 }
 
 /// Clap value parser that converts a comma-separated or range string into a list of [`MetaItem`]s.
 fn parse_list(input: &str) -> Result<Vec<MetaItem>, String> {
+    let images = images_registry().map_err(|e| e.to_string())?;
+    let packs = packs_registry().map_err(|e| e.to_string())?;
     parse_meta_items(
         input,
-        images_registry(),
-        packs_registry(),
+        images,
+        packs,
         &DslOptions::all(),
         &DslOptions::none(),
     )

@@ -28,7 +28,7 @@ pub async fn images(wildfly_only: bool, feature_packs_only: bool) -> anyhow::Res
     let mut entries: Vec<ImageEntry> = Vec::new();
 
     if show_wildfly {
-        for img in images_registry().all() {
+        for img in images_registry()?.all() {
             let item = MetaItem::Image(img.clone());
             let image = Neo4JImage::new(&item);
             entries.push(ImageEntry {
@@ -42,7 +42,7 @@ pub async fn images(wildfly_only: bool, feature_packs_only: bool) -> anyhow::Res
     }
 
     if show_feature_packs {
-        for fp in packs_registry().all() {
+        for fp in packs_registry()?.all() {
             let item = MetaItem::FeaturePack(fp.clone());
             let image = Neo4JImage::new(&item);
             entries.push(ImageEntry {

@@ -198,7 +198,9 @@ async fn stream_output(
             result = stdout_lines.next_line(), if !stdout_done => {
                 match result? {
                     Some(line) => {
-                        let _ = writeln!(log_file, "{}", line);
+                        if let Err(e) = writeln!(log_file, "{}", line) {
+                            eprintln!("Warning: failed to write to log file: {e}");
+                        }
                         append_line(error_buffer, &line);
                         if let Some(resource) = parse_analyzer_resource(&line) {
                             progress.show_progress(resource);
@@ -210,7 +212,9 @@ async fn stream_output(
             result = stderr_lines.next_line(), if !stderr_done => {
                 match result? {
                     Some(line) => {
-                        let _ = writeln!(log_file, "{}", line);
+                        if let Err(e) = writeln!(log_file, "{}", line) {
+                            eprintln!("Warning: failed to write to log file: {e}");
+                        }
                         append_line(error_buffer, &line);
                     }
                     None => stderr_done = true,

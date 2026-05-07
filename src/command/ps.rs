@@ -25,7 +25,7 @@ pub async fn ps(json: bool) -> anyhow::Result<()> {
                 id: running.id.clone(),
             })
             .collect();
-        println!("{}", serde_json::to_string(&infos).unwrap());
+        println!("{}", serde_json::to_string(&infos)?);
         return Ok(());
     }
 

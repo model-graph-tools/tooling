@@ -5,11 +5,11 @@ use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Cell, Color, ContentArrangement, Table};
 
 /// Prints a table of all supported feature packs with their Maven coordinates.
-pub fn feature_packs_cmd(json: bool) {
+pub fn feature_packs_cmd(json: bool) -> anyhow::Result<()> {
     if json {
-        let packs: Vec<_> = packs_registry().all();
-        println!("{}", serde_json::to_string(&packs).unwrap());
-        return;
+        let packs: Vec<_> = packs_registry()?.all();
+        println!("{}", serde_json::to_string(&packs)?);
+        return Ok(());
     }
 
     let mut table = Table::new();
@@ -18,7 +18,7 @@ pub fn feature_packs_cmd(json: bool) {
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec!["Shortcut", "Version", "Group ID", "Artifact ID"]);
 
-    for fp in packs_registry().all() {
+    for fp in packs_registry()?.all() {
         table.add_row(vec![
             Cell::new(&fp.shortcut).fg(Color::DarkMagenta),
             Cell::new(fp.version.to_string()).fg(Color::DarkCyan),
@@ -28,4 +28,5 @@ pub fn feature_packs_cmd(json: bool) {
     }
 
     println!("\n{table}");
+    Ok(())
 }

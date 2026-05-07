@@ -5,11 +5,11 @@ use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Cell, Color, ContentArrangement, Table};
 
 /// Prints a table of all supported WildFly versions with their metadata.
-pub fn versions(json: bool) {
+pub fn versions(json: bool) -> anyhow::Result<()> {
     if json {
-        let images: Vec<_> = images_registry().all();
-        println!("{}", serde_json::to_string(&images).unwrap());
-        return;
+        let images: Vec<_> = images_registry()?.all();
+        println!("{}", serde_json::to_string(&images)?);
+        return Ok(());
     }
 
     let mut table = Table::new();
@@ -23,7 +23,7 @@ pub fn versions(json: bool) {
             "Repository",
         ]);
 
-    for img in images_registry().all() {
+    for img in images_registry()?.all() {
         table.add_row(vec![
             Cell::new(img.short_name()).fg(Color::DarkMagenta),
             Cell::new(&img.release_version),
@@ -33,4 +33,5 @@ pub fn versions(json: bool) {
     }
 
     println!("\n{table}");
+    Ok(())
 }

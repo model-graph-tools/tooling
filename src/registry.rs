@@ -38,10 +38,14 @@ pub fn init_registries_sync() -> Result<()> {
     Ok(())
 }
 
-pub fn images_registry() -> &'static WildFlyImageRegistry {
-    IMAGES.get().expect("WildFlyImageRegistry not initialized")
+pub fn images_registry() -> Result<&'static WildFlyImageRegistry> {
+    IMAGES
+        .get()
+        .ok_or_else(|| anyhow::anyhow!("WildFly image registry not initialized"))
 }
 
-pub fn packs_registry() -> &'static FeaturePackRegistry {
-    PACKS.get().expect("FeaturePackRegistry not initialized")
+pub fn packs_registry() -> Result<&'static FeaturePackRegistry> {
+    PACKS
+        .get()
+        .ok_or_else(|| anyhow::anyhow!("Feature pack registry not initialized"))
 }

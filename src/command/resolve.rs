@@ -5,7 +5,7 @@ use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Cell, Color, ContentArrangement, Table};
 use wildfly_meta::MetaItem;
 
-pub fn resolve(items: &[MetaItem], json: bool) {
+pub fn resolve(items: &[MetaItem], json: bool) -> anyhow::Result<()> {
     let results: Vec<ResolveResult> = items
         .iter()
         .map(|item| ResolveResult {
@@ -16,8 +16,8 @@ pub fn resolve(items: &[MetaItem], json: bool) {
         .collect();
 
     if json {
-        println!("{}", serde_json::to_string(&results).unwrap());
-        return;
+        println!("{}", serde_json::to_string(&results)?);
+        return Ok(());
     }
 
     let mut table = Table::new();
@@ -35,4 +35,5 @@ pub fn resolve(items: &[MetaItem], json: bool) {
     }
 
     println!("\n{table}");
+    Ok(())
 }

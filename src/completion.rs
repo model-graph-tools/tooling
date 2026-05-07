@@ -9,7 +9,10 @@ use crate::registry::{images_registry, packs_registry};
 
 /// Returns completions for single-value arguments (versions + feature packs, no ranges).
 pub fn complete_single_identifier(_current: &OsStr) -> Vec<CompletionCandidate> {
-    all_meta_items(images_registry(), packs_registry())
+    let (Ok(images), Ok(packs)) = (images_registry(), packs_registry()) else {
+        return vec![];
+    };
+    all_meta_items(images, packs)
         .into_iter()
         .map(CompletionCandidate::new)
         .collect()
@@ -18,10 +21,13 @@ pub fn complete_single_identifier(_current: &OsStr) -> Vec<CompletionCandidate> 
 /// Returns completions for multi-value arguments (comma-separated, ranges supported).
 pub fn complete_multiple_identifiers(current: &OsStr) -> Vec<CompletionCandidate> {
     let input = current.to_str().unwrap_or("");
+    let (Ok(images), Ok(packs)) = (images_registry(), packs_registry()) else {
+        return vec![];
+    };
     suggest_meta_items(
         input,
-        images_registry(),
-        packs_registry(),
+        images,
+        packs,
         &DslOptions::all(),
         &DslOptions::none(),
     )

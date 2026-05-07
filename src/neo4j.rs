@@ -36,13 +36,14 @@ impl Ports {
 // ------------------------------------------------------ image
 
 /// A Neo4J image configuration tied to an analysis source.
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Neo4JImage {
     pub item: MetaItem,
 }
 
 impl Neo4JImage {
     /// Creates an image configuration from the given meta item.
+    #[must_use]
     pub fn new(item: &MetaItem) -> Neo4JImage {
         Neo4JImage { item: item.clone() }
     }
@@ -124,7 +125,7 @@ impl Neo4JImage {
 // ------------------------------------------------------ container
 
 /// A Neo4J container with its image and assigned ports.
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Neo4JContainer {
     pub image: Neo4JImage,
     pub ports: Ports,

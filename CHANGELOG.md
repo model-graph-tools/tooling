@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Replace `expect()` panics in registry accessors and argument extractors with `Result`-based error propagation
+- Replace `unreachable!()` with `bail!()` in subcommand dispatch for graceful error handling
+- Replace `unwrap()` on JSON serialization with `?` operator in `versions`, `feature-packs`, `resolve`, and `ps` commands
+- Log warnings instead of silently ignoring `writeln!` errors in analyzer log streaming
+- Add `Debug` derive to `Neo4JImage` and `Neo4JContainer` structs
+- Add `#[must_use]` attribute to `Neo4JImage::new()`
+
 ## [0.3.1] - 2026-05-07
 
 ### Added

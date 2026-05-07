@@ -318,7 +318,7 @@ mod tests {
     #[test]
     fn configs_old_version() {
         init();
-        let img = parse_wildfly_image("10", crate::registry::images_registry()).unwrap();
+        let img = parse_wildfly_image("10", crate::registry::images_registry().unwrap()).unwrap();
         let configs = wildfly_configurations(&img);
         assert_eq!(configs.len(), 1);
         assert_eq!(configs[0].config, "standalone-full-ha.xml");
@@ -328,7 +328,7 @@ mod tests {
     #[test]
     fn configs_new_version() {
         init();
-        let img = parse_wildfly_image("39", crate::registry::images_registry()).unwrap();
+        let img = parse_wildfly_image("39", crate::registry::images_registry().unwrap()).unwrap();
         let configs = wildfly_configurations(&img);
         assert_eq!(configs.len(), 2);
         assert_eq!(configs[0].config, "standalone-full-ha.xml");
@@ -340,7 +340,7 @@ mod tests {
     #[test]
     fn configs_boundary_version() {
         init();
-        let img = parse_wildfly_image("19", crate::registry::images_registry()).unwrap();
+        let img = parse_wildfly_image("19", crate::registry::images_registry().unwrap()).unwrap();
         let configs = wildfly_configurations(&img);
         assert_eq!(configs.len(), 2);
     }
@@ -348,7 +348,7 @@ mod tests {
     #[test]
     fn configs_below_boundary() {
         init();
-        let img = parse_wildfly_image("18", crate::registry::images_registry()).unwrap();
+        let img = parse_wildfly_image("18", crate::registry::images_registry().unwrap()).unwrap();
         let configs = wildfly_configurations(&img);
         assert_eq!(configs.len(), 1);
     }
