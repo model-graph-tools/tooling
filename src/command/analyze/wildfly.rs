@@ -24,16 +24,6 @@ use wildfly_meta::{MetaItem, WildFlyImage};
 /// Total number of pipeline steps shown in step headers.
 const TOTAL_STEPS: u32 = 4;
 
-/// A WildFly instance used during analysis, replacing wado types.
-#[derive(Clone)]
-pub(super) struct AnalysisInstance {
-    pub image_ref: String,
-    pub identifier: u16,
-    pub name: String,
-    pub http_port: u16,
-    pub management_port: u16,
-}
-
 /// Per-version mapping of WildFly identifiers to their server configurations.
 ///
 /// Keyed by `WildFlyImage.identifier` (e.g. `100` for 10.0, `261` for 26.1).
@@ -88,6 +78,17 @@ struct WildFlyConfiguration {
     append: bool,
 }
 
+/// A WildFly instance used during analysis, replacing wado types.
+#[derive(Clone)]
+pub(super) struct AnalysisInstance {
+    pub image_ref: String,
+    pub identifier: u16,
+    pub name: String,
+    pub http_port: u16,
+    pub management_port: u16,
+    pub supports_stability: bool,
+}
+
 /// Returns the server configurations to analyze for a given WildFly version.
 ///
 /// Looks up the version in the explicit mapping. Unknown/future versions
@@ -120,6 +121,7 @@ pub(super) async fn run_wildfly_analysis(
             name: format!("mgt-wado-sa-{}-{}", image.identifier, cfg.suffix),
             http_port: image.http_port() + i as u16,
             management_port: image.management_port() + i as u16,
+            supports_stability: image.supports_stability(),
         })
         .collect();
 
@@ -280,9 +282,11 @@ async fn start_wildfly(
         .arg("--publish")
         .arg(format!("{}:9990", instance.management_port))
         .arg(&instance.image_ref)
-        .args(["-c", configuration])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+        .args(["-c", configuration]);
+    if instance.supports_stability {
+        command.arg("--stability=experimental");
+    }
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
     let output = command.output().await?;
     if !output.status.success() {
         bail!(
