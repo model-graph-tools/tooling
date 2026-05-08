@@ -1,0 +1,27 @@
+{
+  "name": "@model-graph-tools/mgt-linux-x64",
+  "version": "0.3.3",
+  "description": "Pre-built mgt binary for Linux x64",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Harald Pehl",
+    "email": "harald.pehl@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/model-graph-tools/tooling.git"
+  },
+  "homepage": "https://model-graph-tools.github.io/",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "bin": {
+    "mgt": "bin/mgt"
+  },
+  "files": [
+    "bin/"
+  ]
+}
