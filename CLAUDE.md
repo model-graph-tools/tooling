@@ -82,6 +82,18 @@ The codebase is organized into top-level modules and a `command/` submodule tree
 
 Commands accept WildFly versions, feature pack shortcuts, or a mix. WildFly versions are specified as `<major>[.<minor>]` where major >= 10 and minor 0-9. Supports comma-separated lists (`10,26.1,34`) and ranges (`20..29`). Feature packs use shortcut names (e.g. `ai`, `graphql`).
 
+## npm Packages
+
+Platform-specific npm packages under `@model-graph-tools/mgt-{platform}` are defined in the `npm/` directory. Each contains a `package.json` with `os`/`cpu` constraints and a `bin/` directory for the pre-built binary. The packages are:
+
+- `@model-graph-tools/mgt-linux-x64`
+- `@model-graph-tools/mgt-linux-arm64`
+- `@model-graph-tools/mgt-darwin-x64`
+- `@model-graph-tools/mgt-darwin-arm64`
+- `@model-graph-tools/mgt-win32-x64`
+
+These are consumed as optional dependencies by the [MCP server](https://github.com/model-graph-tools/claude-plugin), which resolves the correct platform binary at runtime.
+
 ## Release Process
 
-Uses `cargo-release` with `release.toml`. Run `./release.sh <version>` to bump version, update changelog, tag, and push. The GitHub Actions release workflow then creates a GitHub release, publishes to crates.io, uploads platform binaries, and updates the Homebrew formula.
+Uses `cargo-release` with `release.toml`. Run `./release.sh <version>` to bump version, update changelog, tag, and push. The GitHub Actions release workflow then creates a GitHub release, publishes to crates.io, uploads platform binaries, updates the Homebrew formula, and publishes platform-specific npm packages.

@@ -49,6 +49,18 @@ brew tap hpehl/tap
 brew install mgt
 ```
 
+## npm
+
+Platform-specific npm packages are published under `@model-graph-tools/mgt-{platform}`. These are primarily used by the [MCP server](https://github.com/model-graph-tools/claude-plugin) to bundle the `mgt` binary automatically, but you can also install them directly:
+
+```shell
+npm install -g @model-graph-tools/mgt-darwin-arm64   # macOS Apple Silicon
+npm install -g @model-graph-tools/mgt-darwin-x64     # macOS Intel
+npm install -g @model-graph-tools/mgt-linux-x64      # Linux x64
+npm install -g @model-graph-tools/mgt-linux-arm64    # Linux ARM64
+npm install -g @model-graph-tools/mgt-win32-x64      # Windows x64
+```
+
 ## Cargo
 
 ```shell
