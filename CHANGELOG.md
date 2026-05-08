@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fix test race condition in registry initialization by using `sync::Once` to prevent concurrent `load_or_update` calls across test threads
+
 ## [0.3.2] - 2026-05-08
 
 ### Added
