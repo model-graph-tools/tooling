@@ -1,8 +1,15 @@
 use anyhow::Result;
 use wildfly_meta::update_all;
 
-pub async fn update() -> Result<()> {
+use crate::json::UpdateResult;
+
+pub async fn update(json: bool) -> Result<()> {
     let result = tokio::task::spawn_blocking(update_all).await??;
-    println!("{}", result.summary());
+    if json {
+        let json_result = UpdateResult::from(&result);
+        println!("{}", serde_json::to_string(&json_result)?);
+    } else {
+        println!("{}", result.summary());
+    }
     Ok(())
 }

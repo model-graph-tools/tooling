@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add `--json` flag support to the `update` command for machine-readable output including update status, version info, and diffs
+
 ### Changed
 - Replace `expect()` panics in registry accessors and argument extractors with `Result`-based error propagation
 - Replace `unreachable!()` with `bail!()` in subcommand dispatch for graceful error handling

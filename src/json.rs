@@ -2,6 +2,7 @@
 
 use crate::error::{MgtError, MgtErrorCode};
 use serde::Serialize;
+use wildfly_meta::{UpdateResult as MetaUpdateResult, UpdateStatus as MetaUpdateStatus};
 
 /// Running container info for `mgt ps --json`.
 #[derive(Serialize)]
@@ -59,6 +60,67 @@ impl CommandResult {
             http: None,
             error_code: Some(MgtError::error_code(err)),
             error: Some(err.to_string()),
+        }
+    }
+}
+
+/// JSON output for a single update status (WildFly images or feature packs).
+#[derive(Serialize)]
+pub struct UpdateStatusResult {
+    pub status: String,
+    pub version: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub from_version: Option<u32>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub added: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub removed: Vec<String>,
+}
+
+impl From<&MetaUpdateStatus> for UpdateStatusResult {
+    fn from(status: &MetaUpdateStatus) -> Self {
+        match status {
+            MetaUpdateStatus::Downloaded { version, .. } => Self {
+                status: "downloaded".into(),
+                version: *version,
+                from_version: None,
+                added: Vec::new(),
+                removed: Vec::new(),
+            },
+            MetaUpdateStatus::Updated {
+                from_version,
+                to_version,
+                diff,
+            } => Self {
+                status: "updated".into(),
+                version: *to_version,
+                from_version: Some(*from_version),
+                added: diff.added.clone(),
+                removed: diff.removed.clone(),
+            },
+            MetaUpdateStatus::AlreadyUpToDate(version) => Self {
+                status: "up_to_date".into(),
+                version: *version,
+                from_version: None,
+                added: Vec::new(),
+                removed: Vec::new(),
+            },
+        }
+    }
+}
+
+/// Combined JSON output for `mgt update --json`.
+#[derive(Serialize)]
+pub struct UpdateResult {
+    pub wildfly_images: UpdateStatusResult,
+    pub feature_packs: UpdateStatusResult,
+}
+
+impl From<&MetaUpdateResult> for UpdateResult {
+    fn from(result: &MetaUpdateResult) -> Self {
+        Self {
+            wildfly_images: UpdateStatusResult::from(&result.wildfly_images),
+            feature_packs: UpdateStatusResult::from(&result.feature_packs),
         }
     }
 }
@@ -264,5 +326,73 @@ mod tests {
         assert_eq!(json.as_array().unwrap().len(), 2);
         assert_eq!(json[0]["identifier"], "39.0");
         assert_eq!(json[1]["identifier"], "ai:0.9.1");
+    }
+
+    #[test]
+    fn update_result_up_to_date() {
+        let meta = MetaUpdateResult {
+            wildfly_images: MetaUpdateStatus::AlreadyUpToDate(2),
+            feature_packs: MetaUpdateStatus::AlreadyUpToDate(4),
+        };
+        let result = UpdateResult::from(&meta);
+        let json: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&result).unwrap()).unwrap();
+        assert_eq!(json["wildfly_images"]["status"], "up_to_date");
+        assert_eq!(json["wildfly_images"]["version"], 2);
+        assert!(json["wildfly_images"].get("from_version").is_none());
+        assert_eq!(json["feature_packs"]["status"], "up_to_date");
+        assert_eq!(json["feature_packs"]["version"], 4);
+    }
+
+    #[test]
+    fn update_result_downloaded() {
+        let meta = MetaUpdateResult {
+            wildfly_images: MetaUpdateStatus::Downloaded {
+                version: 1,
+                count: 10,
+            },
+            feature_packs: MetaUpdateStatus::Downloaded {
+                version: 1,
+                count: 5,
+            },
+        };
+        let result = UpdateResult::from(&meta);
+        let json: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&result).unwrap()).unwrap();
+        assert_eq!(json["wildfly_images"]["status"], "downloaded");
+        assert_eq!(json["wildfly_images"]["version"], 1);
+        assert_eq!(json["feature_packs"]["status"], "downloaded");
+    }
+
+    #[test]
+    fn update_result_updated_with_diff() {
+        use wildfly_meta::UpdateDiff;
+        let meta = MetaUpdateResult {
+            wildfly_images: MetaUpdateStatus::Updated {
+                from_version: 1,
+                to_version: 2,
+                diff: UpdateDiff {
+                    added: vec!["WildFly 40".into()],
+                    removed: vec![],
+                },
+            },
+            feature_packs: MetaUpdateStatus::Updated {
+                from_version: 3,
+                to_version: 4,
+                diff: UpdateDiff {
+                    added: vec!["AI 1.0.0".into()],
+                    removed: vec!["AI 0.8.0".into()],
+                },
+            },
+        };
+        let result = UpdateResult::from(&meta);
+        let json: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&result).unwrap()).unwrap();
+        assert_eq!(json["wildfly_images"]["status"], "updated");
+        assert_eq!(json["wildfly_images"]["version"], 2);
+        assert_eq!(json["wildfly_images"]["from_version"], 1);
+        assert_eq!(json["wildfly_images"]["added"][0], "WildFly 40");
+        assert_eq!(json["feature_packs"]["added"][0], "AI 1.0.0");
+        assert_eq!(json["feature_packs"]["removed"][0], "AI 0.8.0");
     }
 }

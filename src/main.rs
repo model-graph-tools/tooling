@@ -107,7 +107,7 @@ async fn run(json: bool) -> Result<()> {
 
     // Registry-free commands: handle first, return early
     match matches.subcommand() {
-        Some(("update", _)) => return update().await,
+        Some(("update", _)) => return update(json).await,
         Some(("ps", _)) => return ps(json).await,
         Some(("completions", m)) => return completions(m),
         _ => {}
