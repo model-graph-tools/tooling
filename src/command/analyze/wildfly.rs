@@ -309,10 +309,15 @@ async fn start_wildfly(
 mod tests {
     use super::*;
     use crate::registry::init_registries_sync;
+    use std::sync::Once;
     use wildfly_meta::parse_wildfly_image;
 
+    static INIT: Once = Once::new();
+
     fn init() {
-        let _ = init_registries_sync();
+        INIT.call_once(|| {
+            init_registries_sync().expect("Failed to initialize registries");
+        });
     }
 
     #[test]
