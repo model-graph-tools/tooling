@@ -113,7 +113,21 @@ jobs:
   publish-npm:
     if: github.repository_owner == 'model-graph-tools'
     needs: upload-assets
+    name: npm / ${{ matrix.pkg }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - pkg: mgt-linux-x64
+            target: x86_64-unknown-linux-gnu
+          - pkg: mgt-linux-arm64
+            target: aarch64-unknown-linux-gnu
+          - pkg: mgt-darwin-x64
+            target: x86_64-apple-darwin
+          - pkg: mgt-darwin-arm64
+            target: aarch64-apple-darwin
+          - pkg: mgt-win32-x64
+            target: x86_64-pc-windows-msvc
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
@@ -122,7 +136,33 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - id: get-version
         uses: battila7/get-version-action@v2.3.0
-      - name: Publish platform npm packages
-        run: ./scripts/publish-npm.sh ${{ steps.get-version.outputs.version }}
+      - name: Download, extract, and publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="${{ steps.get-version.outputs.version-without-v }}"
+          TAG="${{ steps.get-version.outputs.version }}"
+          TARGET="${{ matrix.target }}"
+          PKG_DIR="npm/${{ matrix.pkg }}"
+          BASE_URL="https://github.com/model-graph-tools/tooling/releases/download/${TAG}"
+
+          if [[ "${{ matrix.pkg }}" == *win32* ]]; then
+            ARCHIVE="mgt-${TARGET}.zip"
+            BINARY="mgt.exe"
+          else
+            ARCHIVE="mgt-${TARGET}.tar.gz"
+            BINARY="mgt"
+          fi
+
+          curl -fsSL -o "${ARCHIVE}" "${BASE_URL}/${ARCHIVE}"
+          if [[ "${ARCHIVE}" == *.zip ]]; then
+            unzip -qo "${ARCHIVE}" -d extracted
+          else
+            mkdir extracted && tar -xzf "${ARCHIVE}" -C extracted
+          fi
+
+          cp "extracted/${BINARY}" "${PKG_DIR}/bin/${BINARY}"
+          chmod +x "${PKG_DIR}/bin/${BINARY}"
+          sed -i "s/\"version\": \".*\"/\"version\": \"${VERSION}\"/" "${PKG_DIR}/package.json"
+
+          cd "${PKG_DIR}" && npm publish --access public

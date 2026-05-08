@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Distribute `mgt` binary via platform-specific npm packages (`@model-graph-tools/mgt-{platform}`)
+
+### Changed
+- Replace npm publish shell script with matrix-based GitHub Actions workflow for parallel per-platform publishing
+
 ## [0.3.3] - 2026-05-08
 
 ### Fixed
