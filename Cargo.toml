@@ -26,7 +26,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tempfile = "3.27.0"
 thiserror = "2"
-tokio = { version = "1.52.2", features = ["full"] }
+tokio = { version = "1.52.3", features = ["full"] }
 webbrowser = "1.2.1"
 which = "8.0.2"
 wildfly_meta = "0.7.1"
