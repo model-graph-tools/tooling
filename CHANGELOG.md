@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix release workflow
+
 ### Changed
 - Update tokio to 1.52.2
 - Switch npm publishing to OIDC-based authentication
