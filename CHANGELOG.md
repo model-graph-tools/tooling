@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fix analyzer download leaving corrupt zero-byte cached JAR after partial download failure, causing all subsequent runs to fail with "Invalid or corrupt jarfile"
+
+### Changed
+- Use atomic write (temp file + rename) for analyzer JAR download to prevent partial files from persisting
+- Reject empty downloads with an explicit error instead of silently caching a zero-byte file
+
 ## [0.3.6] - 2026-05-20
 
 ### Fixed
