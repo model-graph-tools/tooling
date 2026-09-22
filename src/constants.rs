@@ -17,6 +17,9 @@ pub fn analyzer_url() -> String {
     )
 }
 
+/// Current version of the REST API native binary.
+pub static REST_API_VERSION: &str = "0.1.0";
+
 /// Neo4J Docker image version tag used for the base image.
 pub static NEO4J_VERSION: &str = "2026.04-community";
 

@@ -18,7 +18,7 @@ pub async fn download_file(
     progress: &Progress,
 ) -> anyhow::Result<PathBuf> {
     let path = temp_dir().join(filename);
-    if path.exists() && fs::metadata(&path).map_or(false, |m| m.len() > 0) {
+    if path.exists() && fs::metadata(&path).is_ok_and(|m| m.len() > 0) {
         return Ok(path);
     }
 
