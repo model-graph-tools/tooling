@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-09-22
+
 ### Fixed
 - Fix analyzer download leaving corrupt zero-byte cached JAR after partial download failure, causing all subsequent runs to fail with "Invalid or corrupt jarfile"
 - Fix `ps` command failing with "cannot index slice/array with type string" when other containers are running, by using podman's `.Label` template function instead of `index .Labels`
@@ -185,7 +187,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release 🎉
 
-[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.3.6...HEAD
+[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.3.7...HEAD
+[0.3.7]: https://github.com/model-graph-tools/tooling/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/model-graph-tools/tooling/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/model-graph-tools/tooling/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/model-graph-tools/tooling/compare/v0.3.3...v0.3.4
