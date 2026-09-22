@@ -17,6 +17,32 @@ pub fn analyzer_url() -> String {
     )
 }
 
+/// Resolves the latest REST API release version from GitHub.
+///
+/// Queries the GitHub releases API and strips the leading `v` from the tag name.
+/// Falls back to `REST_API_VERSION` if the API request fails.
+pub async fn latest_rest_api_version() -> anyhow::Result<String> {
+    let client = reqwest::Client::builder()
+        .user_agent("mgt")
+        .build()?;
+    let response = client
+        .get("https://api.github.com/repos/model-graph-tools/rest-api/releases/latest")
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await?;
+    if !response.status().is_success() {
+        anyhow::bail!(
+            "Failed to fetch latest REST API version: HTTP {}",
+            response.status()
+        );
+    }
+    let body: serde_json::Value = response.json().await?;
+    let tag = body["tag_name"]
+        .as_str()
+        .ok_or_else(|| anyhow::anyhow!("No tag_name in GitHub release response"))?;
+    Ok(tag.strip_prefix('v').unwrap_or(tag).to_string())
+}
+
 /// Current version of the REST API native binary.
 pub static REST_API_VERSION: &str = "0.1.0";
 
@@ -34,3 +60,15 @@ pub static WELCOME_URL: &str = "https://model-graph-tools.github.io/assets/welco
 
 /// URL for the schema SVG graphic referenced by the welcome page.
 pub static SCHEMA_SVG_URL: &str = "https://model-graph-tools.github.io/assets/schema.svg";
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn analyzer_url_formats_correctly() {
+        let url = analyzer_url();
+        assert!(url.contains(ANALYZER_VERSION));
+        assert!(url.ends_with(".jar"));
+    }
+}
