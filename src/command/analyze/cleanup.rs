@@ -21,7 +21,11 @@ pub(super) async fn build_neo4j_image(neo4j: &Neo4JContainer) -> anyhow::Result<
 
     neo4j
         .image
-        .build_image(&neo4j.container_name(), &progress)
+        .build_image(
+            &neo4j.container_name(),
+            crate::constants::REST_API_VERSION,
+            &progress,
+        )
         .await?;
 
     progress.finish_success(Some("Ready"));

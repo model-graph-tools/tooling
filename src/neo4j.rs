@@ -1,8 +1,8 @@
 //! Neo4J container, image, and port management.
 
 use crate::constants::{
-    MODEL_GRAPH_TOOLS_REPOSITORY, NEO4J_IMAGE, NEO4J_VERSION, PLATFORMS, REST_API_VERSION,
-    SCHEMA_SVG_URL, WELCOME_URL,
+    MODEL_GRAPH_TOOLS_REPOSITORY, NEO4J_IMAGE, NEO4J_VERSION, PLATFORMS, SCHEMA_SVG_URL,
+    WELCOME_URL,
 };
 use crate::container::{container_command, run_container_cmd};
 use crate::progress::Progress;
@@ -72,6 +72,7 @@ impl Neo4JImage {
     pub async fn build_image(
         &self,
         container_name: &str,
+        rest_api_version: &str,
         progress: &Progress,
     ) -> anyhow::Result<()> {
         let build_dir = tempfile::tempdir()?;
@@ -83,7 +84,7 @@ impl Neo4JImage {
 
         std::fs::write(
             build_path.join("Dockerfile"),
-            model_db_dockerfile(&self.item.full_name()),
+            model_db_dockerfile(&self.item.full_name(), rest_api_version),
         )?;
 
         let image_tag = self.image_tag();
@@ -177,7 +178,7 @@ async fn copy_from_container(
 
 /// Returns a Dockerfile for building a Neo4J image with pre-populated databases
 /// and an nginx reverse proxy that serves the welcome page from the same origin.
-fn model_db_dockerfile(source_name: &str) -> String {
+fn model_db_dockerfile(source_name: &str, rest_api_version: &str) -> String {
     format!(
         r#"FROM neo4j:{NEO4J_VERSION}
 ARG TARGETARCH
@@ -197,7 +198,7 @@ RUN mkdir -p /var/www/html /var/lib/nginx/body /var/lib/nginx/proxy \
     && sed -i 's|{{{{SOURCE_NAME}}}}|{source_name}|g' /var/www/html/welcome.html
 
 RUN curl -fsSL -o /opt/rest-api \
-    https://github.com/model-graph-tools/rest-api/releases/download/v{REST_API_VERSION}/rest-api-{REST_API_VERSION}-linux-$TARGETARCH \
+    https://github.com/model-graph-tools/rest-api/releases/download/v{rest_api_version}/rest-api-{rest_api_version}-linux-$TARGETARCH \
     && chmod +x /opt/rest-api
 
 RUN printf 'pid /run/nginx.pid;\n\
@@ -253,13 +254,13 @@ mod tests {
 
     #[test]
     fn dockerfile_contains_targetarch() {
-        let df = model_db_dockerfile("wildfly-41.0");
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains("ARG TARGETARCH"));
     }
 
     #[test]
     fn dockerfile_downloads_rest_api() {
-        let df = model_db_dockerfile("wildfly-41.0");
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains("/opt/rest-api"));
         assert!(df.contains("model-graph-tools/rest-api/releases/download"));
         assert!(df.contains("TARGETARCH"));
@@ -267,14 +268,14 @@ mod tests {
 
     #[test]
     fn dockerfile_has_api_location_block() {
-        let df = model_db_dockerfile("wildfly-41.0");
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains("location /api/"));
         assert!(df.contains("proxy_pass http://localhost:8080"));
     }
 
     #[test]
     fn dockerfile_starts_rest_api_in_entrypoint() {
-        let df = model_db_dockerfile("wildfly-41.0");
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains("/opt/rest-api"));
         let entrypoint_section = df.split("#!/bin/bash").last().unwrap();
         assert!(entrypoint_section.contains("/opt/rest-api"));
@@ -282,32 +283,39 @@ mod tests {
 
     #[test]
     fn dockerfile_substitutes_source_name() {
-        let df = model_db_dockerfile("wildfly-41.0");
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains("wildfly-41.0"));
     }
 
     #[test]
     fn dockerfile_preserves_neo4j_base_image() {
-        let df = model_db_dockerfile("wildfly-41.0");
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.starts_with(&format!("FROM neo4j:{NEO4J_VERSION}")));
     }
 
     #[test]
     fn dockerfile_preserves_welcome_page() {
-        let df = model_db_dockerfile("wildfly-41.0");
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains(WELCOME_URL));
         assert!(df.contains(SCHEMA_SVG_URL));
     }
 
     #[test]
     fn dockerfile_has_neo4j_browser_proxy() {
-        let df = model_db_dockerfile("wildfly-41.0");
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains("proxy_pass http://localhost:7475"));
     }
 
     #[test]
     fn dockerfile_rest_api_url_uses_version() {
-        let df = model_db_dockerfile("wildfly-41.0");
-        assert!(df.contains(crate::constants::REST_API_VERSION));
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
+        assert!(df.contains("0.1.0"));
+    }
+
+    #[test]
+    fn dockerfile_rest_api_url_uses_custom_version() {
+        let df = model_db_dockerfile("wildfly-41.0", "2.3.4");
+        assert!(df.contains("v2.3.4/rest-api-2.3.4-linux"));
+        assert!(!df.contains("0.1.0"));
     }
 }

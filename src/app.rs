@@ -48,6 +48,22 @@ pub fn build_app() -> Command {
                 .value_name("SIZE")
                 .help("Push in batches of SIZE images instead of all at once")))
 
+        // repack
+        .subcommand(Command::new("repack")
+            .about("Rebuild model images with an updated REST API binary")
+            .arg(Arg::new("identifier")
+                .required_unless_present("all")
+                .help("WildFly versions, feature packs, or a mix (e.g. 34,ai,graphql)"))
+            .arg(Arg::new("all")
+                .short('a')
+                .long("all")
+                .action(ArgAction::SetTrue)
+                .help("Repack all known model images from the registries"))
+            .arg(Arg::new("api-version")
+                .long("api-version")
+                .value_name("VERSION")
+                .help("REST API version to embed (default: latest from GitHub)")))
+
         // start
         .subcommand(Command::new("start")
             .about("Start model containers")
