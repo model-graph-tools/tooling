@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fix npm publish workflow failing due to npm@latest dropping Node 25 support
+
 ## [0.3.7] - 2026-09-22
 
 ### Fixed
