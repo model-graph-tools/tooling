@@ -7,7 +7,7 @@ pub static MODEL_GRAPH_TOOLS_REPOSITORY: &str = "quay.io/modelgraphtools/model";
 pub static WADO_SA_REPOSITORY: &str = "quay.io/wado/wado-sa";
 
 /// A static string that defines the current version of the analyzer.
-pub static ANALYZER_VERSION: &str = "0.1.2";
+pub static ANALYZER_VERSION: &str = "0.1.3";
 
 /// Returns the GitHub release download URL for the current analyzer version.
 pub fn analyzer_url() -> String {
