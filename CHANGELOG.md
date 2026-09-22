@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix analyzer download leaving corrupt zero-byte cached JAR after partial download failure, causing all subsequent runs to fail with "Invalid or corrupt jarfile"
+- Fix `ps` command failing with "cannot index slice/array with type string" when other containers are running, by using podman's `.Label` template function instead of `index .Labels`
 
 ### Changed
 - Use atomic write (temp file + rename) for analyzer JAR download to prevent partial files from persisting

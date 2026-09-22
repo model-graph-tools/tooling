@@ -30,7 +30,7 @@ impl Label {
 
     /// Returns a Go template expression to extract this label's value in `--format`.
     pub fn format_expr(&self) -> String {
-        format!("{{{{index .Labels \"{}\"}}}}", self.key())
+        format!("{{{{.Label \"{}\"}}}}", self.key())
     }
 
     /// Parses a label value from container output, returning `None` for empty or `<no value>`.
@@ -75,7 +75,7 @@ mod tests {
     fn format_expr_produces_go_template() {
         assert_eq!(
             Label::Identifier.format_expr(),
-            "{{index .Labels \"org.wildfly.mgt.identifier\"}}"
+            "{{.Label \"org.wildfly.mgt.identifier\"}}"
         );
     }
 
