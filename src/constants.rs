@@ -22,9 +22,7 @@ pub fn analyzer_url() -> String {
 /// Queries the GitHub releases API and strips the leading `v` from the tag name.
 /// Falls back to `REST_API_VERSION` if the API request fails.
 pub async fn latest_rest_api_version() -> anyhow::Result<String> {
-    let client = reqwest::Client::builder()
-        .user_agent("mgt")
-        .build()?;
+    let client = reqwest::Client::builder().user_agent("mgt").build()?;
     let response = client
         .get("https://api.github.com/repos/model-graph-tools/rest-api/releases/latest")
         .header("Accept", "application/vnd.github+json")

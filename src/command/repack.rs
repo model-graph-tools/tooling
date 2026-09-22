@@ -1,9 +1,7 @@
 //! Rebuilds Neo4J model DB images with an updated REST API binary.
 
 use crate::constants::{REST_API_VERSION, latest_rest_api_version};
-use crate::container::{
-    container_command, pull_image, remove_container, verify_container_command,
-};
+use crate::container::{container_command, pull_image, remove_container, verify_container_command};
 use crate::error::MgtError;
 use crate::neo4j::Neo4JImage;
 use crate::progress::{CommandStatus, Progress, done, summary};
@@ -110,8 +108,7 @@ fn resolve_targets(items: Option<&[MetaItem]>, all: bool) -> anyhow::Result<Vec<
         }
         Ok(targets)
     } else {
-        let provided = items
-            .ok_or_else(|| anyhow::anyhow!("Argument <identifier> expected"))?;
+        let provided = items.ok_or_else(|| anyhow::anyhow!("Argument <identifier> expected"))?;
         Ok(provided.to_vec())
     }
 }
