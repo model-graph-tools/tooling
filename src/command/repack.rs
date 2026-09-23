@@ -1,10 +1,7 @@
 //! Rebuilds Neo4J model DB images with an updated REST API binary.
 
 use crate::constants::{REST_API_VERSION, latest_rest_api_version};
-use crate::container::{
-    container_command, pull_image, remove_container, stop_container, verify_container_command,
-};
-use crate::error::MgtError;
+use crate::container::{pull_image, verify_container_command};
 use crate::neo4j::Neo4JImage;
 use crate::progress::{CommandStatus, Progress, done, summary};
 use crate::registry::{images_registry, packs_registry};
@@ -19,7 +16,7 @@ use wildfly_meta::MetaItem;
 ///
 /// When `all` is true, repacks all known model images from the registries.
 /// When `api_version` is `None`, resolves the latest release from GitHub.
-/// Images not available locally are pulled from the remote registry.
+/// Data images are pulled from the remote registry if not available locally.
 pub async fn repack(
     items: Option<&[MetaItem]>,
     all: bool,
@@ -115,54 +112,13 @@ fn resolve_targets(items: Option<&[MetaItem]>, all: bool) -> anyhow::Result<Vec<
     }
 }
 
-/// Repacks a single image: ensures the image is available locally (pulling
-/// from the remote registry if needed), creates a temporary container to
-/// extract the Neo4J data, removes the container, and rebuilds the image
-/// with the new REST API version.
+/// Pulls the data image and rebuilds the model image with the given REST API version.
 async fn repack_image(
     image: &Neo4JImage,
     rest_api_version: &str,
     progress: &Progress,
 ) -> anyhow::Result<()> {
-    let image_tag = image.image_tag();
-    let temp_container = format!("mgt-repack-{}", image.item.container_name());
-
-    pull_image(&image_tag, progress).await?;
-
-    progress.show_progress("Starting temporary container...");
-    let mut cmd = container_command()?;
-    cmd.arg("run")
-        .arg("--detach")
-        .arg("--name")
-        .arg(&temp_container)
-        .arg(&image_tag)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
-    let output = cmd.output().await?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(MgtError::repack_failed(&image_tag, stderr.trim_end()).into());
-    }
-
-    let rebuild_result = image.build_image(rest_api_version, progress).await;
-
-    progress.show_progress("Cleaning up temporary container...");
-    if let Err(e) = stop_container(&temp_container).await {
-        eprintln!(
-            "  {} Failed to stop temporary container {}: {}",
-            style("\u{26a0}").yellow(),
-            temp_container,
-            e
-        );
-    }
-    if let Err(e) = remove_container(&temp_container).await {
-        eprintln!(
-            "  {} Failed to remove temporary container {}: {}",
-            style("\u{26a0}").yellow(),
-            temp_container,
-            e
-        );
-    }
-
-    rebuild_result
+    let data_tag = image.data_image_tag();
+    pull_image(&data_tag, progress).await?;
+    image.build_image(rest_api_version, progress).await
 }

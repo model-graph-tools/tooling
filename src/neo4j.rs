@@ -105,8 +105,8 @@ impl Neo4JImage {
         .await
     }
 
-    /// Builds a multi-arch model image using a multi-stage Dockerfile that
-    /// copies data from the data image via COPY --from.
+    /// Builds a multi-arch model image by extracting data from the data image
+    /// and bundling it with the Neo4J base image and REST API.
     pub async fn build_image(
         &self,
         rest_api_version: &str,
@@ -115,13 +115,14 @@ impl Neo4JImage {
         let build_dir = tempfile::tempdir()?;
         let build_path = build_dir.path();
 
+        progress.show_progress("Extracting data from data image...");
+        let temp_container = format!("mgt-data-extract-{}", self.item.container_name());
+        let data_tag = self.data_image_tag();
+        create_and_copy_from(&temp_container, &data_tag, build_path).await?;
+
         std::fs::write(
             build_path.join("Dockerfile"),
-            model_db_dockerfile(
-                &self.item.full_name(),
-                rest_api_version,
-                &self.data_image_tag(),
-            ),
+            model_db_dockerfile(&self.item.full_name(), rest_api_version),
         )?;
 
         let image_tag = self.image_tag();
@@ -197,6 +198,45 @@ pub struct RunningNeo4JContainer {
 
 // ------------------------------------------------------ helper
 
+/// Creates a temporary container from an image, copies database files to the
+/// destination, and removes the container. Safe for `FROM scratch` images
+/// (no VOLUME declarations that would shadow layer data).
+async fn create_and_copy_from(
+    container_name: &str,
+    image_tag: &str,
+    dest: &std::path::Path,
+) -> anyhow::Result<()> {
+    let mut create_cmd = container_command()?;
+    create_cmd
+        .arg("create")
+        .arg("--name")
+        .arg(container_name)
+        .arg(image_tag)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let output = create_cmd.output().await?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("Failed to create container from {}: {}", image_tag, stderr.trim_end());
+    }
+
+    let result = async {
+        copy_from_container(container_name, "/databases", dest).await?;
+        copy_from_container(container_name, "/transactions", dest).await
+    }
+    .await;
+
+    let mut rm_cmd = container_command()?;
+    rm_cmd
+        .arg("rm")
+        .arg(container_name)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let _ = rm_cmd.output().await;
+
+    result
+}
+
 /// Copies a directory from a running container to a local destination path.
 async fn copy_from_container(
     container: &str,
@@ -214,10 +254,9 @@ async fn copy_from_container(
 
 /// Returns a Dockerfile for building a Neo4J image with pre-populated databases
 /// and an nginx reverse proxy that serves the welcome page from the same origin.
-fn model_db_dockerfile(source_name: &str, rest_api_version: &str, data_image_tag: &str) -> String {
+fn model_db_dockerfile(source_name: &str, rest_api_version: &str) -> String {
     format!(
-        r#"FROM {data_image_tag} AS data
-FROM neo4j:{NEO4J_VERSION}
+        r#"FROM neo4j:{NEO4J_VERSION}
 ARG TARGETARCH
 
 USER root
@@ -275,8 +314,8 @@ RUN printf '#!/bin/bash\n/opt/rest-api &\nnginx -c /etc/nginx/nginx.conf\nexec /
     > /entrypoint.sh && chmod +x /entrypoint.sh
 
 USER neo4j
-COPY --from=data --chown=neo4j:neo4j /databases /data/databases
-COPY --from=data --chown=neo4j:neo4j /transactions /data/transactions
+COPY --chown=neo4j:neo4j databases /data/databases
+COPY --chown=neo4j:neo4j transactions /data/transactions
 ENV NEO4J_AUTH=none
 ENV NEO4J_server_databases_default__to__read__only=true
 ENV NEO4J_server_http_listen__address=:7475
@@ -322,27 +361,15 @@ mod tests {
         assert!(image.data_image_tag().starts_with("quay.io/modelgraphtools/data:ai-"));
     }
 
-    const TEST_DATA_TAG: &str = "quay.io/modelgraphtools/data:41.0.1";
-
-    #[test]
-    fn dockerfile_has_multistage_data_from() {
-        let df = model_db_dockerfile("wildfly-41.0", "0.1.0", TEST_DATA_TAG);
-        assert!(df.starts_with(&format!("FROM {} AS data\n", TEST_DATA_TAG)));
-        assert!(df.contains("COPY --from=data --chown=neo4j:neo4j /databases /data/databases"));
-        assert!(
-            df.contains("COPY --from=data --chown=neo4j:neo4j /transactions /data/transactions")
-        );
-    }
-
     #[test]
     fn dockerfile_contains_targetarch() {
-        let df = model_db_dockerfile("wildfly-41.0", "0.1.0", TEST_DATA_TAG);
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains("ARG TARGETARCH"));
     }
 
     #[test]
     fn dockerfile_downloads_rest_api() {
-        let df = model_db_dockerfile("wildfly-41.0", "0.1.0", TEST_DATA_TAG);
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains("/opt/rest-api"));
         assert!(df.contains("model-graph-tools/rest-api/releases/download"));
         assert!(df.contains("TARGETARCH"));
@@ -350,14 +377,14 @@ mod tests {
 
     #[test]
     fn dockerfile_has_api_location_block() {
-        let df = model_db_dockerfile("wildfly-41.0", "0.1.0", TEST_DATA_TAG);
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains("location /api/"));
         assert!(df.contains("proxy_pass http://localhost:8080"));
     }
 
     #[test]
     fn dockerfile_starts_rest_api_in_entrypoint() {
-        let df = model_db_dockerfile("wildfly-41.0", "0.1.0", TEST_DATA_TAG);
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains("/opt/rest-api"));
         let entrypoint_section = df.split("#!/bin/bash").last().unwrap();
         assert!(entrypoint_section.contains("/opt/rest-api"));
@@ -365,38 +392,38 @@ mod tests {
 
     #[test]
     fn dockerfile_substitutes_source_name() {
-        let df = model_db_dockerfile("wildfly-41.0", "0.1.0", TEST_DATA_TAG);
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains("wildfly-41.0"));
     }
 
     #[test]
     fn dockerfile_preserves_neo4j_base_image() {
-        let df = model_db_dockerfile("wildfly-41.0", "0.1.0", TEST_DATA_TAG);
-        assert!(df.contains(&format!("FROM neo4j:{NEO4J_VERSION}")));
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
+        assert!(df.starts_with(&format!("FROM neo4j:{NEO4J_VERSION}")));
     }
 
     #[test]
     fn dockerfile_preserves_welcome_page() {
-        let df = model_db_dockerfile("wildfly-41.0", "0.1.0", TEST_DATA_TAG);
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains(WELCOME_URL));
         assert!(df.contains(SCHEMA_SVG_URL));
     }
 
     #[test]
     fn dockerfile_has_neo4j_browser_proxy() {
-        let df = model_db_dockerfile("wildfly-41.0", "0.1.0", TEST_DATA_TAG);
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains("proxy_pass http://localhost:7475"));
     }
 
     #[test]
     fn dockerfile_rest_api_url_uses_version() {
-        let df = model_db_dockerfile("wildfly-41.0", "0.1.0", TEST_DATA_TAG);
+        let df = model_db_dockerfile("wildfly-41.0", "0.1.0");
         assert!(df.contains("0.1.0"));
     }
 
     #[test]
     fn dockerfile_rest_api_url_uses_custom_version() {
-        let df = model_db_dockerfile("wildfly-41.0", "2.3.4", TEST_DATA_TAG);
+        let df = model_db_dockerfile("wildfly-41.0", "2.3.4");
         assert!(df.contains("v2.3.4/rest-api-2.3.4-linux"));
         assert!(!df.contains("0.1.0"));
     }
