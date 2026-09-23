@@ -1,7 +1,9 @@
 //! Rebuilds Neo4J model DB images with an updated REST API binary.
 
 use crate::constants::{REST_API_VERSION, latest_rest_api_version};
-use crate::container::{container_command, pull_image, remove_container, verify_container_command};
+use crate::container::{
+    container_command, pull_image, remove_container, stop_container, verify_container_command,
+};
 use crate::error::MgtError;
 use crate::neo4j::Neo4JImage;
 use crate::progress::{CommandStatus, Progress, done, summary};
@@ -127,9 +129,10 @@ async fn repack_image(
 
     pull_image(&image_tag, progress).await?;
 
-    progress.show_progress("Creating temporary container...");
+    progress.show_progress("Starting temporary container...");
     let mut cmd = container_command()?;
-    cmd.arg("create")
+    cmd.arg("run")
+        .arg("--detach")
         .arg("--name")
         .arg(&temp_container)
         .arg(&image_tag)
@@ -141,11 +144,17 @@ async fn repack_image(
         return Err(MgtError::repack_failed(&image_tag, stderr.trim_end()).into());
     }
 
-    let rebuild_result = image
-        .build_image(&temp_container, rest_api_version, progress)
-        .await;
+    let rebuild_result = image.build_image(rest_api_version, progress).await;
 
     progress.show_progress("Cleaning up temporary container...");
+    if let Err(e) = stop_container(&temp_container).await {
+        eprintln!(
+            "  {} Failed to stop temporary container {}: {}",
+            style("\u{26a0}").yellow(),
+            temp_container,
+            e
+        );
+    }
     if let Err(e) = remove_container(&temp_container).await {
         eprintln!(
             "  {} Failed to remove temporary container {}: {}",

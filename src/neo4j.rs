@@ -80,11 +80,10 @@ impl Neo4JImage {
         }
     }
 
-    /// Copies database files from the running container and builds a multi-arch manifest image.
-    pub async fn build_image(
+    /// Copies database files from a stopped container and builds a single-arch data image.
+    pub async fn build_data_image(
         &self,
         container_name: &str,
-        rest_api_version: &str,
         progress: &Progress,
     ) -> anyhow::Result<()> {
         let build_dir = tempfile::tempdir()?;
@@ -94,14 +93,39 @@ impl Neo4JImage {
         copy_from_container(container_name, "/data/databases", build_path).await?;
         copy_from_container(container_name, "/data/transactions", build_path).await?;
 
+        std::fs::write(build_path.join("Dockerfile"), data_image_dockerfile())?;
+
+        let data_tag = self.data_image_tag();
+        progress.show_progress("Building data image...");
+        let build_path_str = build_path.to_string_lossy();
+        run_container_cmd(
+            &["build", "--tag", &data_tag, &build_path_str],
+            "Data image build failed",
+        )
+        .await
+    }
+
+    /// Builds a multi-arch model image using a multi-stage Dockerfile that
+    /// copies data from the data image via COPY --from.
+    pub async fn build_image(
+        &self,
+        rest_api_version: &str,
+        progress: &Progress,
+    ) -> anyhow::Result<()> {
+        let build_dir = tempfile::tempdir()?;
+        let build_path = build_dir.path();
+
         std::fs::write(
             build_path.join("Dockerfile"),
-            model_db_dockerfile(&self.item.full_name(), rest_api_version, &self.data_image_tag()),
+            model_db_dockerfile(
+                &self.item.full_name(),
+                rest_api_version,
+                &self.data_image_tag(),
+            ),
         )?;
 
         let image_tag = self.image_tag();
 
-        // Remove any existing manifest (ignore errors if it doesn't exist)
         progress.show_progress("Creating manifest...");
         let mut rm_cmd = container_command()?;
         rm_cmd
