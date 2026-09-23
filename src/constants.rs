@@ -3,11 +3,14 @@
 /// Container image registry and organization prefix.
 pub static MODEL_GRAPH_TOOLS_REPOSITORY: &str = "quay.io/modelgraphtools/model";
 
+/// Container image registry for Neo4J database data images.
+pub static DATA_REPOSITORY: &str = "quay.io/modelgraphtools/data";
+
 /// Wado standalone container image repository used for WildFly analysis.
 pub static WADO_SA_REPOSITORY: &str = "quay.io/wado/wado-sa";
 
 /// A static string that defines the current version of the analyzer.
-pub static ANALYZER_VERSION: &str = "0.1.4";
+pub static ANALYZER_VERSION: &str = "0.1.5";
 
 /// Returns the GitHub release download URL for the current analyzer version.
 pub fn analyzer_url() -> String {
@@ -42,7 +45,7 @@ pub async fn latest_rest_api_version() -> anyhow::Result<String> {
 }
 
 /// Current version of the REST API native binary.
-pub static REST_API_VERSION: &str = "0.1.2";
+pub static REST_API_VERSION: &str = "0.2.2";
 
 /// Neo4J Docker image version tag used for the base image.
 pub static NEO4J_VERSION: &str = "2026.09-community";
