@@ -7,13 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- Fix analyzer progress display not showing resource addresses during step 2/4 by switching from `-DbatchMode=true` to `-Dlogback.configurationFile=logback-batch.xml`, working around a logback 1.6 incompatibility in the analyzer
+### Added
+- Add separate OCI data image (`quay.io/modelgraphtools/data`) to store Neo4J database files independently from the model image, serving as the canonical data source for both `analyze` and `repack`
+- Push both data and model images together when running `mgt push`
 
 ### Changed
-- Bump analyzer version to 0.1.4
-- Bump REST API fallback version to 0.1.2
+- Rewrite `repack` to pull the data image and rebuild the model image without starting any containers, eliminating the VOLUME-related `podman cp` failure and removing container lifecycle overhead
+- Refactor `analyze` pipeline to build a data image after analysis, then build the model image from it
+- Bump analyzer version to 0.1.5
+- Bump REST API fallback version to 0.2.2
 - Update Neo4J base image from 2026.04-community to 2026.09-community
+
+### Removed
+- Remove `RepackFailed` error variant (no longer needed after repack simplification)
+
+### Fixed
+- Fix analyzer progress display not showing resource addresses during step 2/4 by switching from `-DbatchMode=true` to `-Dlogback.configurationFile=logback-batch.xml`, working around a logback 1.6 incompatibility in the analyzer
 
 ## [0.4.0] - 2026-09-23
 
