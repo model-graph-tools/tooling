@@ -236,7 +236,15 @@ async fn create_and_copy_from(
         .arg(container_name)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    let _ = rm_cmd.output().await;
+    if let Ok(output) = rm_cmd.output().await
+        && !output.status.success()
+    {
+        eprintln!(
+            "  Warning: failed to remove temporary container {}: {}",
+            container_name,
+            String::from_utf8_lossy(&output.stderr).trim_end()
+        );
+    }
 
     result
 }
