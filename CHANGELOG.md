@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-23
+
 ### Added
 - Add `repack` subcommand to rebuild existing Neo4J model images with an updated REST API binary, supporting parallel execution across multiple identifiers and automatic version resolution from GitHub releases
 - Embed the REST API binary in Neo4J model images during analysis, serving it behind the nginx reverse proxy at `/api/`
@@ -201,7 +203,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release 🎉
 
-[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.3.8...HEAD
+[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/model-graph-tools/tooling/compare/v0.3.8...v0.4.0
 [0.3.8]: https://github.com/model-graph-tools/tooling/compare/v0.3.7...v0.3.8
 [0.3.7]: https://github.com/model-graph-tools/tooling/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/model-graph-tools/tooling/compare/v0.3.5...v0.3.6
