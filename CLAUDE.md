@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `mgt` is a Rust CLI tool for working with the WildFly management model graph. It serves two main purposes:
 
 1. **Analysis Pipeline** — Orchestrates starting WildFly containers, spinning up Neo4J databases, running the Java-based [analyzer](https://github.com/model-graph-tools/analyzer), and building self-contained Neo4J images.
-2. **Model Container Management** — Starts and stops Neo4J model containers, making the management model graph available for querying and exploration.
+2. **Model Container Management** — Starts and stops Neo4J model containers, making the management model graph available for querying and exploration. Each container includes an embedded [REST API](https://github.com/model-graph-tools/rest-api) served at `/api/` alongside the Neo4J browser.
 
 `mgt` is a key component of the [model graph tools](https://model-graph-tools.github.io/) ecosystem and powers the [Model Graph Tools Claude Code Plugin](https://github.com/model-graph-tools/claude-plugin), which provides an MCP server for exploring the WildFly management model directly from Claude Code.
 
@@ -34,7 +34,7 @@ The codebase is organized into top-level modules and a `command/` submodule tree
 - **`app.rs`** — Defines the clap `Command` tree (subcommands, args, styling). Separated from `main.rs` so both the runtime and the completion system can build the command tree independently.
 - **`args.rs`** — Helpers to extract typed arguments from clap `ArgMatches`.
 - **`command/`** — Subcommand implementations (see below).
-- **`constants.rs`** — Analyzer version/URL, Neo4J version/image, and Dockerfile generation.
+- **`constants.rs`** — Analyzer version/URL, REST API version/resolution, Neo4J version/image, and Dockerfile generation.
 - **`container.rs`** — Container runtime abstraction. Prefers `podman`, falls back to `docker`.
 - **`neo4j.rs`** — Neo4J container, image, and port management.
 - **`registry.rs`** — Global `OnceLock`-based access to `wildfly_meta` registries for clap parsers.
@@ -55,6 +55,7 @@ The codebase is organized into top-level modules and a `command/` submodule tree
   - `feature_pack.rs` — Feature pack resolution and container setup.
   - `cleanup.rs` — Resource cleanup after analysis.
 - **`push.rs`** — Push Neo4J model DB images to quay.io.
+- **`repack.rs`** — Rebuild existing model images with an updated REST API binary.
 - **`start.rs`** — Start Neo4J model DB containers.
 - **`stop.rs`** — Stop Neo4J model DB containers.
 - **`browse.rs`** — Open Neo4J browser for running containers.
@@ -71,7 +72,7 @@ The codebase is organized into top-level modules and a `command/` submodule tree
 - **`wildfly_meta`** — WildFly image and feature pack metadata (registries, version parsing, completions). Loaded from TOML files in `~/.config/wildfly-meta/`.
 - **`clap`** / **`clap_complete`** — CLI argument parsing with dynamic shell completions.
 - **`tokio`** — Async runtime for concurrent container orchestration.
-- **`reqwest`** — Downloads the analyzer JAR from GitHub releases.
+- **`reqwest`** — Downloads the analyzer JAR and resolves the latest REST API version from GitHub releases.
 
 ## Runtime Requirements
 

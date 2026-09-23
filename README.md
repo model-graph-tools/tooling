@@ -6,7 +6,7 @@
 `mgt` is a command line tool for working with the [WildFly](https://www.wildfly.org/) management model graph. It serves two main purposes:
 
 1. **Analysis Pipeline** — Orchestrates starting WildFly containers, spinning up [Neo4J](https://neo4j.com/) databases, running the Java-based [analyzer](https://github.com/model-graph-tools/analyzer), and building self-contained Neo4J images with pre-populated databases.
-2. **Model Container Management** — Starts and stops Neo4J model containers, making the management model graph available for querying and exploration.
+2. **Model Container Management** — Starts and stops Neo4J model containers, making the management model graph available for querying and exploration. Each container includes an embedded [REST API](https://github.com/model-graph-tools/rest-api) served at `/api/` alongside the Neo4J browser.
 
 `mgt` is a key component of the [model graph tools](https://model-graph-tools.github.io/) ecosystem and powers the [Model Graph Tools Claude Code Plugin](https://github.com/model-graph-tools/claude-plugin), which provides an MCP server for exploring the WildFly management model directly from Claude Code.
 
@@ -15,6 +15,7 @@
 - [Commands](#commands)
     - [analyze](#analyze)
     - [push](#push)
+    - [repack](#repack)
     - [start](#start)
     - [stop](#stop)
     - [browse](#browse)
@@ -139,7 +140,7 @@ Analyzes the management model of a WildFly instance or feature pack and builds a
 1. Starts a WildFly standalone instance from [quay.io/wado/wado-sa](https://quay.io/repository/wado/wado-sa).
 2. Starts an empty Neo4J database from [docker.io/neo4j](https://hub.docker.com/_/neo4j).
 3. Downloads and runs the [analyzer](https://github.com/model-graph-tools/analyzer).
-4. Builds a self-contained Neo4J image published to [quay.io/modelgraphtools/model](https://quay.io/repository/modelgraphtools/model).
+4. Builds a self-contained Neo4J image with an embedded [REST API](https://github.com/model-graph-tools/rest-api), published to [quay.io/modelgraphtools/model](https://quay.io/repository/modelgraphtools/model).
 5. Shuts down instances and cleans up resources.
 
 ```shell
@@ -155,6 +156,17 @@ Pushes model DB images to the remote registry. Images must have been built previ
 mgt push 34
 mgt push 34,ai,graphql
 mgt push 26..29 --chunks 2
+```
+
+## repack
+
+Rebuilds existing model images with an updated REST API binary. By default, resolves the latest REST API version from GitHub releases.
+
+```shell
+mgt repack 34
+mgt repack 34,ai,graphql
+mgt repack --all
+mgt repack 34 --api-version 0.2.0
 ```
 
 ## start

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add `repack` subcommand to rebuild existing Neo4J model images with an updated REST API binary, supporting parallel execution across multiple identifiers and automatic version resolution from GitHub releases
+- Embed the REST API binary in Neo4J model images during analysis, serving it behind the nginx reverse proxy at `/api/`
+
+### Changed
+- Bump analyzer version to 0.1.3
+- Update regex to 1.13.1, which to 8.0.4, handlebars to 6.4.2, anyhow to 1.0.103, indicatif to 0.18.5
+- Update actions/checkout to 7 and actions/setup-node to 7 in CI workflows
+
 ## [0.3.8] - 2026-09-22
 
 ### Fixed
