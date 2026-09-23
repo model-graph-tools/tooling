@@ -217,7 +217,11 @@ async fn create_and_copy_from(
     let output = create_cmd.output().await?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("Failed to create container from {}: {}", image_tag, stderr.trim_end());
+        anyhow::bail!(
+            "Failed to create container from {}: {}",
+            image_tag,
+            stderr.trim_end()
+        );
     }
 
     let result = async {
@@ -349,7 +353,11 @@ mod tests {
         let registry = crate::registry::images_registry().unwrap();
         let img = parse_wildfly_image("41", registry).unwrap();
         let image = Neo4JImage::new(&MetaItem::Image(img));
-        assert!(image.data_image_tag().starts_with("quay.io/modelgraphtools/data:41.0"));
+        assert!(
+            image
+                .data_image_tag()
+                .starts_with("quay.io/modelgraphtools/data:41.0")
+        );
     }
 
     #[test]
@@ -358,7 +366,11 @@ mod tests {
         let registry = crate::registry::packs_registry().unwrap();
         let fp = parse_feature_pack("ai", registry).unwrap();
         let image = Neo4JImage::new(&MetaItem::FeaturePack(fp));
-        assert!(image.data_image_tag().starts_with("quay.io/modelgraphtools/data:ai-"));
+        assert!(
+            image
+                .data_image_tag()
+                .starts_with("quay.io/modelgraphtools/data:ai-")
+        );
     }
 
     #[test]

@@ -18,7 +18,6 @@ pub enum MgtErrorCode {
     ContainerListFailed,
     HealthcheckFailed,
     ContainerStartFailed,
-    RepackFailed,
     RegistryInitFailed,
     UnknownIdentifier,
     ClapParseError,
@@ -88,13 +87,6 @@ impl MgtError {
         Self {
             code: MgtErrorCode::ContainerStartFailed,
             message: format!("Failed to start Neo4J: {stderr}"),
-        }
-    }
-
-    pub fn repack_failed(image: &str, details: &str) -> Self {
-        Self {
-            code: MgtErrorCode::RepackFailed,
-            message: format!("Failed to repack {image}: {details}"),
         }
     }
 
@@ -240,18 +232,5 @@ mod tests {
     fn error_code_falls_back_to_internal() {
         let err = anyhow::anyhow!("plain error");
         assert_eq!(MgtError::error_code(&err), MgtErrorCode::Internal);
-    }
-
-    #[test]
-    fn error_code_repack_failed() {
-        let json = serde_json::to_string(&MgtErrorCode::RepackFailed).unwrap();
-        assert_eq!(json, "\"REPACK_FAILED\"");
-    }
-
-    #[test]
-    fn repack_failed_message() {
-        let err = MgtError::repack_failed("wildfly-41.0", "container create failed");
-        assert!(err.to_string().contains("wildfly-41.0"));
-        assert!(err.to_string().contains("container create failed"));
     }
 }
