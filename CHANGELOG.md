@@ -14,8 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Rewrite `repack` to pull the data image and rebuild the model image without starting any containers, eliminating the VOLUME-related `podman cp` failure and removing container lifecycle overhead
 - Refactor `analyze` pipeline to build a data image after analysis, then build the model image from it
-- Bump analyzer version to 0.1.5
-- Bump REST API fallback version to 0.2.2
+- Bump analyzer version to 0.1.6
+- Bump REST API fallback version to 0.2.4
 - Update Neo4J base image from 2026.04-community to 2026.09-community
 
 ### Removed
