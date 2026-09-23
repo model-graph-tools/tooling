@@ -20,6 +20,11 @@ pub fn analyzer_url() -> String {
     )
 }
 
+/// Returns a version-stamped filename for caching the analyzer JAR locally.
+pub fn analyzer_filename() -> String {
+    format!("analyzer-{}.jar", ANALYZER_VERSION)
+}
+
 /// Resolves the latest REST API release version from GitHub.
 ///
 /// Queries the GitHub releases API and strips the leading `v` from the tag name.
@@ -71,5 +76,13 @@ mod tests {
         let url = analyzer_url();
         assert!(url.contains(ANALYZER_VERSION));
         assert!(url.ends_with(".jar"));
+    }
+
+    #[test]
+    fn analyzer_filename_includes_version() {
+        let filename = analyzer_filename();
+        assert!(filename.contains(ANALYZER_VERSION));
+        assert!(filename.ends_with(".jar"));
+        assert_ne!(filename, "analyzer.jar");
     }
 }

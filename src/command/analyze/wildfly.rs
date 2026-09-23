@@ -244,7 +244,7 @@ async fn run_analyzers(
     network: &str,
 ) -> anyhow::Result<()> {
     step_header(2, TOTAL_STEPS, "Analyzing...");
-    let analyzer_jar = temp_dir().join("analyzer.jar");
+    let analyzer_jar = temp_dir().join(crate::constants::analyzer_filename());
     for (instance, cfg) in instances.iter().zip(configs.iter()) {
         let progress = Progress::new(cfg.config);
         let mode = if cfg.append { "--append" } else { "--clean" };

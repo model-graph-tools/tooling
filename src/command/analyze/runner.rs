@@ -32,7 +32,7 @@ const ERROR_BUFFER_CAPACITY: usize = 20;
 ///
 /// Skips the download if the JAR already exists locally.
 pub(super) async fn download_analyzer(url: &str, progress: &Progress) -> anyhow::Result<PathBuf> {
-    download_file(url, "analyzer.jar", progress).await
+    download_file(url, &crate::constants::analyzer_filename(), progress).await
 }
 
 /// Runs the analyzer against a live WildFly instance via the management interface.
@@ -118,7 +118,7 @@ pub(super) async fn run_doc_zip_analyzer(
 ) -> anyhow::Result<()> {
     progress.show_progress("Starting analyzer...");
 
-    let analyzer_jar = temp_dir().join("analyzer.jar");
+    let analyzer_jar = temp_dir().join(crate::constants::analyzer_filename());
     if !analyzer_jar.exists() {
         let dl_progress = Progress::new("analyzer");
         download_analyzer(&crate::constants::analyzer_url(), &dl_progress).await?;
