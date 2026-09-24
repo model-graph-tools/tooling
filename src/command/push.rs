@@ -69,7 +69,9 @@ pub async fn push(items: &[MetaItem], chunk_size: u16) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Pushes a batch of images in parallel (both data and model images).
+/// Pushes a batch of images in parallel across items, but sequential per item
+/// (data image first, then model manifest) to avoid concurrent podman operations
+/// on related images.
 async fn push_batch(items: &[&MetaItem]) -> anyhow::Result<Vec<CommandStatus>> {
     let multi_progress = MultiProgress::new();
     let mut tasks = JoinSet::new();
@@ -77,50 +79,69 @@ async fn push_batch(items: &[&MetaItem]) -> anyhow::Result<Vec<CommandStatus>> {
     for item in items {
         let image = Neo4JImage::new(item);
         let display = item.short_name();
-
-        // Push data image (regular push, single-arch)
         let data_tag = image.data_image_tag();
-        let data_display = format!("{} (data)", display);
-        let data_progress = Progress::join(&multi_progress, &data_display);
-        let mut data_cmd = container_command()?;
-        data_cmd
-            .arg("push")
-            .arg(&data_tag)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-        let mut data_child = data_cmd.spawn()?;
-        let data_stderr = stderr_reader(&mut data_child)?;
-        let data_progress_clone = data_progress.clone();
-        tasks.spawn(async move {
-            let output = data_child.wait_with_output().await;
-            data_progress.finish_output(output, None)
-        });
-        tokio::spawn(async move {
-            data_progress_clone.trace_progress(data_stderr).await;
-        });
-
-        // Push model image (manifest push, multi-arch)
         let model_tag = image.image_tag();
-        let model_display = format!("{} (model)", display);
-        let model_progress = Progress::join(&multi_progress, &model_display);
-        let mut model_cmd = container_command()?;
-        model_cmd
-            .arg("manifest")
-            .arg("push")
-            .arg(&model_tag)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-        let mut model_child = model_cmd.spawn()?;
-        let model_stderr = stderr_reader(&mut model_child)?;
-        let model_progress_clone = model_progress.clone();
+        let data_progress = Progress::join(&multi_progress, &format!("{} (data)", display));
+        let model_progress = Progress::join(&multi_progress, &format!("{} (model)", display));
+
         tasks.spawn(async move {
-            let output = model_child.wait_with_output().await;
-            model_progress.finish_output(output, None)
-        });
-        tokio::spawn(async move {
-            model_progress_clone.trace_progress(model_stderr).await;
+            let data_status = push_one_image(&["push", &data_tag], &data_progress).await;
+            let model_status =
+                push_one_image(&["manifest", "push", &model_tag], &model_progress).await;
+            vec![data_status, model_status]
         });
     }
 
-    Ok(tasks.join_all().await)
+    Ok(tasks.join_all().await.into_iter().flatten().collect())
+}
+
+/// Pushes a single image or manifest, tracking progress via stderr.
+async fn push_one_image(args: &[&str], progress: &Progress) -> CommandStatus {
+    let mut cmd = match container_command() {
+        Ok(cmd) => cmd,
+        Err(e) => return progress.finish_status(false, &e.to_string()),
+    };
+    for arg in args {
+        cmd.arg(arg);
+    }
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped());
+
+    let mut child = match cmd.spawn() {
+        Ok(c) => c,
+        Err(e) => return progress.finish_status(false, &e.to_string()),
+    };
+
+    let stderr_lines = match stderr_reader(&mut child) {
+        Ok(lines) => lines,
+        Err(e) => return progress.finish_status(false, &e.to_string()),
+    };
+
+    let progress_clone = progress.clone();
+    let stderr_handle = tokio::spawn(async move {
+        let mut lines = stderr_lines;
+        let mut collected = Vec::new();
+        loop {
+            match lines.next_line().await {
+                Ok(Some(line)) => {
+                    progress_clone.show_progress(&line);
+                    collected.push(line);
+                }
+                Ok(None) => break,
+                Err(_) => break,
+            }
+        }
+        collected
+    });
+
+    let exit = child.wait().await;
+    let stderr_output = stderr_handle.await.unwrap_or_default();
+    let error_msg = stderr_output.join(" ");
+
+    match exit {
+        Ok(status) if status.success() => progress.finish_status(true, ""),
+        Ok(_) => progress.finish_status(false, &error_msg),
+        Err(e) => progress.finish_status(false, &e.to_string()),
+    }
 }

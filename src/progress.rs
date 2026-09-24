@@ -2,7 +2,6 @@
 
 use console::{Emoji, style, truncate_str};
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
-use std::process::Output;
 use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, BufReader, Lines};
 use tokio::process::ChildStderr;
@@ -166,45 +165,14 @@ impl Progress {
             .expect("Invalid template")
     }
 
-    /// Reads lines from an async reader and updates the spinner message with each line.
-    pub async fn trace_progress<R>(&self, mut reader: Lines<BufReader<R>>)
-    where
-        R: tokio::io::AsyncRead + Unpin,
-    {
-        loop {
-            match reader.next_line().await {
-                Ok(Some(line)) => self.show_progress(line.as_str()),
-                Ok(None) => break,
-                Err(e) => {
-                    eprintln!("Warning: failed to read command output: {e}");
-                    break;
-                }
-            }
-        }
-    }
-
-    /// Finishes the spinner based on the command output, returning a [`CommandStatus`].
-    pub fn finish_output(
-        &self,
-        output: std::io::Result<Output>,
-        status: Option<&str>,
-    ) -> CommandStatus {
-        match output {
-            Ok(output) => {
-                if output.status.success() {
-                    self.finish_success(status);
-                    CommandStatus::success(&self.name)
-                } else {
-                    let msg = String::from_utf8_lossy(&output.stderr).replace('\n', " ");
-                    self.finish_error(&msg);
-                    CommandStatus::error(&self.name, &msg)
-                }
-            }
-            Err(e) => {
-                let msg = e.to_string();
-                self.finish_error(&msg);
-                CommandStatus::error(&self.name, &msg)
-            }
+    /// Finishes the spinner based on success/failure, returning a [`CommandStatus`].
+    pub fn finish_status(&self, success: bool, error_msg: &str) -> CommandStatus {
+        if success {
+            self.finish_success(None);
+            CommandStatus::success(&self.name)
+        } else {
+            self.finish_error(error_msg);
+            CommandStatus::error(&self.name, error_msg)
         }
     }
 
