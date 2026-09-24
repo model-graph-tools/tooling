@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fix nginx CORS config producing invalid `\"` escapes that prevented nginx from starting, causing container healthcheck timeouts after `repack`
+- Fix `repack` failing with "name is already in use" when the image tag was already associated with a previously pulled image by removing the existing image before creating the manifest
+
 ## [0.5.2] - 2026-09-24
 
 ### Added

@@ -137,6 +137,14 @@ impl Neo4JImage {
             .stderr(Stdio::piped());
         let _ = rm_cmd.output().await;
 
+        let mut rmi_cmd = container_command()?;
+        rmi_cmd
+            .arg("rmi")
+            .arg(&image_tag)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        let _ = rmi_cmd.output().await;
+
         run_container_cmd(
             &["manifest", "create", &image_tag],
             "Manifest creation failed",
@@ -310,8 +318,8 @@ http {{\n\
         location /api/ {{\n\
             if ($request_method = OPTIONS) {{\n\
                 add_header Access-Control-Allow-Origin *;\n\
-                add_header Access-Control-Allow-Methods \"GET, OPTIONS\";\n\
-                add_header Access-Control-Allow-Headers \"Content-Type, Accept\";\n\
+                add_header Access-Control-Allow-Methods "GET, OPTIONS";\n\
+                add_header Access-Control-Allow-Headers "Content-Type, Accept";\n\
                 add_header Access-Control-Max-Age 86400;\n\
                 return 204;\n\
             }}\n\
