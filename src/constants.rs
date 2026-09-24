@@ -50,7 +50,7 @@ pub async fn latest_rest_api_version() -> anyhow::Result<String> {
 }
 
 /// Current version of the REST API native binary.
-pub static REST_API_VERSION: &str = "0.2.4";
+pub static REST_API_VERSION: &str = "0.2.5";
 
 /// Neo4J Docker image version tag used for the base image.
 pub static NEO4J_VERSION: &str = "2026.09-community";

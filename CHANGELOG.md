@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Bump REST API fallback version to 0.2.5
+
 ## [0.5.3] - 2026-09-24
 
 ### Fixed
