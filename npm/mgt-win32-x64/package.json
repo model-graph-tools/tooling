@@ -1,6 +1,6 @@
 {
   "name": "@model-graph-tools/mgt-win32-x64",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Pre-built mgt binary for Windows x64",
   "license": "Apache-2.0",
   "author": {
