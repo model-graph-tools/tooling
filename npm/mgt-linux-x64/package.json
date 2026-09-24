@@ -1,6 +1,6 @@
 {
   "name": "@model-graph-tools/mgt-linux-x64",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Pre-built mgt binary for Linux x64",
   "license": "Apache-2.0",
   "author": {
