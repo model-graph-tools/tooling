@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add CORS headers to the REST API nginx proxy, enabling cross-origin `fetch()` calls from the HAL management console
+
 ## [0.5.1] - 2026-09-24
 
 ### Fixed

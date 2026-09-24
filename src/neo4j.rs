@@ -308,6 +308,14 @@ http {{\n\
             root /var/www/html;\n\
         }}\n\
         location /api/ {{\n\
+            if ($request_method = OPTIONS) {{\n\
+                add_header Access-Control-Allow-Origin *;\n\
+                add_header Access-Control-Allow-Methods \"GET, OPTIONS\";\n\
+                add_header Access-Control-Allow-Headers \"Content-Type, Accept\";\n\
+                add_header Access-Control-Max-Age 86400;\n\
+                return 204;\n\
+            }}\n\
+            add_header Access-Control-Allow-Origin * always;\n\
             proxy_pass http://localhost:8080;\n\
             proxy_http_version 1.1;\n\
             proxy_set_header Host $host;\n\
