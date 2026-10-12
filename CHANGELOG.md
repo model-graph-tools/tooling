@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.6] - 2026-10-12
+
 ### Added
 - Add `--all` / `-a` flag to `push` subcommand to push all known model images from the registries, skipping any not available locally
 
@@ -257,7 +259,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release 🎉
 
-[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.5.5...HEAD
+[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.5.6...HEAD
+[0.5.6]: https://github.com/model-graph-tools/tooling/compare/v0.5.5...v0.5.6
 [0.5.5]: https://github.com/model-graph-tools/tooling/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/model-graph-tools/tooling/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/model-graph-tools/tooling/compare/v0.5.2...v0.5.3

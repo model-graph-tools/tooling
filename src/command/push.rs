@@ -16,11 +16,7 @@ use wildfly_meta::MetaItem;
 ///
 /// When `all` is true, pushes all known model images from the registries
 /// (skipping any not available locally).
-pub async fn push(
-    items: Option<&[MetaItem]>,
-    all: bool,
-    chunk_size: u16,
-) -> anyhow::Result<()> {
+pub async fn push(items: Option<&[MetaItem]>, all: bool, chunk_size: u16) -> anyhow::Result<()> {
     verify_container_command()?;
 
     let targets = resolve_targets(items, all)?;
