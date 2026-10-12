@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add `--chunks` / `-c` option to `repack` subcommand to repack images in batches of a given size instead of all at once, reducing peak resource usage
+
+### Changed
+- Upgrade comfy-table from 7.x to 8.x
+
 ## [0.5.4] - 2026-09-24
 
 ### Changed
