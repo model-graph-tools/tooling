@@ -21,6 +21,7 @@ pub async fn repack(
     items: Option<&[MetaItem]>,
     all: bool,
     api_version: Option<&str>,
+    chunk_size: u16,
 ) -> anyhow::Result<()> {
     verify_container_command()?;
 
@@ -46,14 +47,31 @@ pub async fn repack(
     );
 
     let instant = Instant::now();
+    if chunk_size > 0 {
+        let mut all_status: Vec<CommandStatus> = Vec::with_capacity(count);
+        for chunk in targets.chunks(chunk_size as usize) {
+            let status = repack_batch(chunk, &api_version).await;
+            all_status.extend(status);
+        }
+        summary(count, &all_status);
+    } else {
+        let status = repack_batch(&targets, &api_version).await;
+        summary(count, &status);
+    }
+    done(instant);
+    Ok(())
+}
+
+/// Repacks a batch of images in parallel.
+async fn repack_batch(items: &[MetaItem], api_version: &str) -> Vec<CommandStatus> {
     let multi_progress = MultiProgress::new();
     let mut tasks = JoinSet::new();
 
-    for item in targets {
-        let image = Neo4JImage::new(&item);
+    for item in items {
+        let image = Neo4JImage::new(item);
         let display = item.short_name();
         let progress = Progress::join(&multi_progress, &display);
-        let version = api_version.clone();
+        let version = api_version.to_string();
 
         tasks.spawn(async move {
             let result = repack_image(&image, &version, &progress).await;
@@ -65,10 +83,7 @@ pub async fn repack(
         });
     }
 
-    let status: Vec<CommandStatus> = tasks.join_all().await;
-    summary(count, &status);
-    done(instant);
-    Ok(())
+    tasks.join_all().await
 }
 
 /// Resolves the REST API version: latest from GitHub, falling back to the

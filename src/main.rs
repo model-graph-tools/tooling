@@ -45,10 +45,12 @@ fn build_app_full() -> clap::Command {
                 .mut_arg("chunks", |arg| arg.value_parser(clap::value_parser!(u16)))
         })
         .mut_subcommand("repack", |sub_cmd| {
-            sub_cmd.mut_arg("identifier", |arg| {
-                arg.value_parser(parse_list)
-                    .add(ArgValueCompleter::new(complete_multiple_identifiers))
-            })
+            sub_cmd
+                .mut_arg("identifier", |arg| {
+                    arg.value_parser(parse_list)
+                        .add(ArgValueCompleter::new(complete_multiple_identifiers))
+                })
+                .mut_arg("chunks", |arg| arg.value_parser(clap::value_parser!(u16)))
         })
         .mut_subcommand("start", |sub_cmd| {
             sub_cmd.mut_arg("identifier", |arg| {
@@ -134,7 +136,8 @@ async fn run(json: bool) -> Result<()> {
             let all = m.get_flag("all");
             let items = m.get_one::<Vec<MetaItem>>("identifier");
             let api_version = m.get_one::<String>("api-version").map(|s| s.as_str());
-            repack(items.map(|v| v.as_slice()), all, api_version).await
+            let chunk_size = m.get_one::<u16>("chunks").copied().unwrap_or(0);
+            repack(items.map(|v| v.as_slice()), all, api_version, chunk_size).await
         }
         Some(("start", m)) => start(&meta_items_argument(m)?, json).await,
         Some(("stop", m)) => {

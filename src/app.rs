@@ -62,7 +62,12 @@ pub fn build_app() -> Command {
             .arg(Arg::new("api-version")
                 .long("api-version")
                 .value_name("VERSION")
-                .help("REST API version to embed (default: latest from GitHub)")))
+                .help("REST API version to embed (default: latest from GitHub)"))
+            .arg(Arg::new("chunks")
+                .short('c')
+                .long("chunks")
+                .value_name("SIZE")
+                .help("Repack in batches of SIZE images instead of all at once")))
 
         // start
         .subcommand(Command::new("start")
