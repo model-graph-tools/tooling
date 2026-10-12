@@ -69,7 +69,7 @@ pub async fn images(wildfly_only: bool, feature_packs_only: bool) -> anyhow::Res
 
     let mut table = Table::new();
     table
-        .load_preset(UTF8_BORDERS_ONLY)
+        .load_style(UTF8_BORDERS_ONLY)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec!["Version", "Type", "Image"]);
 

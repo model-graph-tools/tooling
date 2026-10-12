@@ -22,7 +22,7 @@ pub fn resolve(items: &[MetaItem], json: bool) -> anyhow::Result<()> {
 
     let mut table = Table::new();
     table
-        .load_preset(UTF8_BORDERS_ONLY)
+        .load_style(UTF8_BORDERS_ONLY)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec!["Identifier", "Type", "Name"]);
 
