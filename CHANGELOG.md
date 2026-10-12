@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add `--all` / `-a` flag to `push` subcommand to push all known model images from the registries, skipping any not available locally
+
+### Changed
+- Extract shared `resolve_targets` function used by both `push` and `repack` subcommands to reduce code duplication
+
 ## [0.5.5] - 2026-10-12
 
 ### Added

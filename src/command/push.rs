@@ -1,5 +1,6 @@
 //! Pushes Neo4J model DB images to the remote registry.
 
+use super::resolve_targets;
 use crate::container::{container_command, local_image_names, verify_container_command};
 use crate::neo4j::Neo4JImage;
 use crate::progress::{CommandStatus, Progress, done, stderr_reader, summary};
@@ -12,11 +13,19 @@ use tokio::time::Instant;
 use wildfly_meta::MetaItem;
 
 /// Pushes Neo4J model DB images for the given meta items to the remote registry.
-pub async fn push(items: &[MetaItem], chunk_size: u16) -> anyhow::Result<()> {
+///
+/// When `all` is true, pushes all known model images from the registries
+/// (skipping any not available locally).
+pub async fn push(
+    items: Option<&[MetaItem]>,
+    all: bool,
+    chunk_size: u16,
+) -> anyhow::Result<()> {
     verify_container_command()?;
 
+    let targets = resolve_targets(items, all)?;
     let local = local_image_names().await?;
-    let pushable: Vec<&MetaItem> = items
+    let pushable: Vec<&MetaItem> = targets
         .iter()
         .filter(|item| {
             let image = Neo4JImage::new(item);

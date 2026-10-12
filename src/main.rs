@@ -129,8 +129,10 @@ async fn run(json: bool) -> Result<()> {
     match matches.subcommand() {
         Some(("analyze", m)) => analyze(&meta_item_argument(m)?).await,
         Some(("push", m)) => {
+            let all = m.get_flag("all");
+            let items = m.get_one::<Vec<MetaItem>>("identifier");
             let chunk_size = m.get_one::<u16>("chunks").copied().unwrap_or(0);
-            push(&meta_items_argument(m)?, chunk_size).await
+            push(items.map(|v| v.as_slice()), all, chunk_size).await
         }
         Some(("repack", m)) => {
             let all = m.get_flag("all");

@@ -1,10 +1,10 @@
 //! Rebuilds Neo4J model DB images with an updated REST API binary.
 
+use super::resolve_targets;
 use crate::constants::{REST_API_VERSION, latest_rest_api_version};
 use crate::container::{pull_image, verify_container_command};
 use crate::neo4j::Neo4JImage;
 use crate::progress::{CommandStatus, Progress, done, summary};
-use crate::registry::{images_registry, packs_registry};
 use anyhow::bail;
 use console::style;
 use indicatif::MultiProgress;
@@ -100,30 +100,6 @@ async fn resolve_api_version() -> anyhow::Result<String> {
             );
             Ok(REST_API_VERSION.to_string())
         }
-    }
-}
-
-/// Resolves the list of `MetaItem`s to repack.
-///
-/// When `--all` is passed, returns ALL known versions and feature packs from
-/// the registries (images will be pulled from remote if not available locally).
-/// For explicit identifiers, all specified items are included.
-fn resolve_targets(items: Option<&[MetaItem]>, all: bool) -> anyhow::Result<Vec<MetaItem>> {
-    if all {
-        let images = images_registry()?;
-        let packs = packs_registry()?;
-
-        let mut targets: Vec<MetaItem> = Vec::new();
-        for img in images.all() {
-            targets.push(MetaItem::Image(img.clone()));
-        }
-        for fp in packs.all() {
-            targets.push(MetaItem::FeaturePack(fp.clone()));
-        }
-        Ok(targets)
-    } else {
-        let provided = items.ok_or_else(|| anyhow::anyhow!("Argument <identifier> expected"))?;
-        Ok(provided.to_vec())
     }
 }
 
