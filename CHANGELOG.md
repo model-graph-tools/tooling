@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-10-12
+
 ### Added
 - Add `--chunks` / `-c` option to `repack` subcommand to repack images in batches of a given size instead of all at once, reducing peak resource usage
 
@@ -249,7 +251,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release 🎉
 
-[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.5.4...HEAD
+[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.5.5...HEAD
+[0.5.5]: https://github.com/model-graph-tools/tooling/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/model-graph-tools/tooling/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/model-graph-tools/tooling/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/model-graph-tools/tooling/compare/v0.5.1...v0.5.2
