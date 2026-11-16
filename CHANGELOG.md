@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.7] - 2026-11-16
+
 ### Changed
 - Bump analyzer version to 0.1.7
 
@@ -262,7 +264,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release 🎉
 
-[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.5.6...HEAD
+[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.5.7...HEAD
+[0.5.7]: https://github.com/model-graph-tools/tooling/compare/v0.5.6...v0.5.7
 [0.5.6]: https://github.com/model-graph-tools/tooling/compare/v0.5.5...v0.5.6
 [0.5.5]: https://github.com/model-graph-tools/tooling/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/model-graph-tools/tooling/compare/v0.5.3...v0.5.4
