@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.10] - 2026-11-19
+
 ### Changed
 - Bump REST API fallback version to 0.7.0
 
@@ -285,7 +287,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release 🎉
 
-[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.5.9...HEAD
+[Unreleased]: https://github.com/model-graph-tools/tooling/compare/v0.5.10...HEAD
+[0.5.10]: https://github.com/model-graph-tools/tooling/compare/v0.5.9...v0.5.10
 [0.5.9]: https://github.com/model-graph-tools/tooling/compare/v0.5.8...v0.5.9
 [0.5.8]: https://github.com/model-graph-tools/tooling/compare/v0.5.7...v0.5.8
 [0.5.7]: https://github.com/model-graph-tools/tooling/compare/v0.5.6...v0.5.7
