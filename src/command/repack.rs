@@ -1,7 +1,7 @@
 //! Rebuilds Neo4J model DB images with an updated REST API binary.
 
 use super::resolve_targets;
-use crate::constants::{REST_API_VERSION, latest_rest_api_version};
+use crate::constants::resolve_rest_api_version;
 use crate::container::{pull_image, verify_container_command};
 use crate::neo4j::Neo4JImage;
 use crate::progress::{CommandStatus, Progress, done, summary};
@@ -27,7 +27,7 @@ pub async fn repack(
 
     let api_version = match api_version {
         Some(v) => v.to_string(),
-        None => resolve_api_version().await?,
+        None => resolve_rest_api_version().await,
     };
 
     let targets = resolve_targets(items, all)?;
@@ -84,23 +84,6 @@ async fn repack_batch(items: &[MetaItem], api_version: &str) -> Vec<CommandStatu
     }
 
     tasks.join_all().await
-}
-
-/// Resolves the REST API version: latest from GitHub, falling back to the
-/// compiled-in constant.
-async fn resolve_api_version() -> anyhow::Result<String> {
-    match latest_rest_api_version().await {
-        Ok(v) => Ok(v),
-        Err(e) => {
-            eprintln!(
-                "  {} Could not fetch latest REST API version ({}), using v{}",
-                style("\u{26a0}").yellow(),
-                e,
-                REST_API_VERSION
-            );
-            Ok(REST_API_VERSION.to_string())
-        }
-    }
 }
 
 /// Pulls the data image and rebuilds the model image with the given REST API version.

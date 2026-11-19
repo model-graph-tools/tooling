@@ -6,6 +6,7 @@
 use super::cleanup::{build_neo4j_image, cleanup_minimal};
 use super::neo4j_ops::start_neo4j;
 use super::runner::run_doc_zip_analyzer;
+use crate::constants::resolve_rest_api_version;
 use crate::container::{create_network, network_name, pull_image};
 use crate::download::download_file;
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
@@ -91,7 +92,8 @@ pub(super) async fn run_feature_pack_analysis(
         }
         result?;
 
-        build_neo4j_image(&neo4j).await
+        let rest_api_version = resolve_rest_api_version().await;
+        build_neo4j_image(&neo4j, &rest_api_version).await
     }
     .await;
 

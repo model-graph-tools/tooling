@@ -6,7 +6,7 @@
 use super::cleanup::{build_neo4j_image, cleanup};
 use super::neo4j_ops::start_neo4j;
 use super::runner::{ANALYZER_IMAGE, download_analyzer, run_analyzer};
-use crate::constants::{WADO_SA_REPOSITORY, analyzer_url};
+use crate::constants::{WADO_SA_REPOSITORY, analyzer_url, resolve_rest_api_version};
 use crate::container::{container_command, create_network, healthcheck, network_name, pull_image};
 use crate::neo4j::{Neo4JContainer, Neo4JImage};
 use crate::progress::{Progress, step_header};
@@ -128,9 +128,10 @@ pub(super) async fn run_wildfly_analysis(
     create_network(&network).await?;
     prepare_environment(&instances, configs, &neo4j, &network).await?;
 
+    let rest_api_version = resolve_rest_api_version().await;
     let result = async {
         run_analyzers(&instances, configs, &neo4j, &network).await?;
-        build_neo4j_image(&neo4j).await
+        build_neo4j_image(&neo4j, &rest_api_version).await
     }
     .await;
 

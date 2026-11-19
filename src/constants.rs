@@ -49,8 +49,24 @@ pub async fn latest_rest_api_version() -> anyhow::Result<String> {
     Ok(tag.strip_prefix('v').unwrap_or(tag).to_string())
 }
 
-/// Current version of the REST API native binary.
-pub static REST_API_VERSION: &str = "0.2.5";
+/// Current version of the REST API native binary (used as offline fallback).
+pub static REST_API_VERSION: &str = "0.6.4";
+
+/// Resolves the REST API version: latest from GitHub, falling back to `REST_API_VERSION`.
+pub async fn resolve_rest_api_version() -> String {
+    match latest_rest_api_version().await {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!(
+                "  {} Could not fetch latest REST API version ({}), using v{}",
+                console::style("\u{26a0}").yellow(),
+                e,
+                REST_API_VERSION
+            );
+            REST_API_VERSION.to_string()
+        }
+    }
+}
 
 /// Neo4J Docker image version tag used for the base image.
 pub static NEO4J_VERSION: &str = "2026.09-community";

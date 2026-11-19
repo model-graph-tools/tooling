@@ -15,6 +15,7 @@ mod progress;
 mod registry;
 
 use crate::args::{meta_item_argument, meta_items_argument};
+use crate::constants::{ANALYZER_VERSION, NEO4J_VERSION, REST_API_VERSION};
 use crate::command::{
     analyze, browse, completions, feature_packs_cmd, images, ps, push, repack, resolve, start,
     stop, update, versions,
@@ -96,6 +97,11 @@ async fn main() {
 }
 
 async fn run(json: bool) -> Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--version" || a == "-V") {
+        return print_version(json);
+    }
+
     let registry_error = init_registries().await.err();
 
     if registry_error.is_none() {
@@ -161,8 +167,27 @@ async fn run(json: bool) -> Result<()> {
             }
             Ok(())
         }
-        _ => bail!("Unknown subcommand"),
+        _ => bail!("Unknown subcommand")
     }
+}
+
+fn print_version(json: bool) -> Result<()> {
+    let version = env!("CARGO_PKG_VERSION");
+    if json {
+        let info = serde_json::json!({
+            "mgt": version,
+            "analyzer": ANALYZER_VERSION,
+            "rest-api": REST_API_VERSION,
+            "neo4j": NEO4J_VERSION,
+        });
+        println!("{}", serde_json::to_string(&info)?);
+    } else {
+        println!("mgt {version}");
+        println!("analyzer {ANALYZER_VERSION}");
+        println!("rest-api {REST_API_VERSION}");
+        println!("neo4j {NEO4J_VERSION}");
+    }
+    Ok(())
 }
 
 fn classify_clap_error(err: clap::Error) -> anyhow::Error {

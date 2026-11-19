@@ -12,7 +12,10 @@ use super::wildfly::AnalysisInstance;
 const TOTAL_STEPS: u32 = 4;
 
 /// Stops the Neo4J container and commits its data volume into a tagged image.
-pub(super) async fn build_neo4j_image(neo4j: &Neo4JContainer) -> anyhow::Result<()> {
+pub(super) async fn build_neo4j_image(
+    neo4j: &Neo4JContainer,
+    rest_api_version: &str,
+) -> anyhow::Result<()> {
     step_header(3, TOTAL_STEPS, "Building Neo4J image...");
     let progress = Progress::new(&neo4j.image.image_tag());
 
@@ -26,7 +29,7 @@ pub(super) async fn build_neo4j_image(neo4j: &Neo4JContainer) -> anyhow::Result<
 
     neo4j
         .image
-        .build_image(crate::constants::REST_API_VERSION, &progress)
+        .build_image(rest_api_version, &progress)
         .await?;
 
     progress.finish_success(Some("Ready"));

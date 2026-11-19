@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add runtime dependency versions (analyzer, REST API, Neo4J) to `--version` output, with `--json` support
+
+### Changed
+- Bump REST API fallback version to 0.6.4
+- Resolve latest REST API version from GitHub during `analyze`, matching the existing `repack` behavior
+- Extract shared `resolve_rest_api_version` function to `constants.rs`, replacing the duplicate in `repack.rs`
+
+### Removed
+- Remove unused `handlebars` dependency
+
 ## [0.5.8] - 2026-11-19
 
 ### Changed
