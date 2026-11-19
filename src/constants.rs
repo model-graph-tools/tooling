@@ -50,7 +50,7 @@ pub async fn latest_rest_api_version() -> anyhow::Result<String> {
 }
 
 /// Current version of the REST API native binary (used as offline fallback).
-pub static REST_API_VERSION: &str = "0.6.4";
+pub static REST_API_VERSION: &str = "0.7.0";
 
 /// Resolves the REST API version: latest from GitHub, falling back to `REST_API_VERSION`.
 pub async fn resolve_rest_api_version() -> String {
