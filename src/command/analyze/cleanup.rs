@@ -27,10 +27,7 @@ pub(super) async fn build_neo4j_image(
         .build_data_image(&neo4j.container_name(), &progress)
         .await?;
 
-    neo4j
-        .image
-        .build_image(rest_api_version, &progress)
-        .await?;
+    neo4j.image.build_image(rest_api_version, &progress).await?;
 
     progress.finish_success(Some("Ready"));
     Ok(())

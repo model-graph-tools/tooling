@@ -15,12 +15,12 @@ mod progress;
 mod registry;
 
 use crate::args::{meta_item_argument, meta_items_argument};
-use crate::constants::{ANALYZER_VERSION, NEO4J_VERSION, REST_API_VERSION};
 use crate::command::{
     analyze, browse, completions, feature_packs_cmd, images, ps, push, repack, resolve, start,
     stop, update, versions,
 };
 use crate::completion::{complete_multiple_identifiers, complete_single_identifier};
+use crate::constants::{ANALYZER_VERSION, NEO4J_VERSION, REST_API_VERSION};
 use crate::error::{JsonErrorEnvelope, MgtError};
 use crate::registry::{images_registry, init_registries, packs_registry};
 use anyhow::{Result, bail};
@@ -167,7 +167,7 @@ async fn run(json: bool) -> Result<()> {
             }
             Ok(())
         }
-        _ => bail!("Unknown subcommand")
+        _ => bail!("Unknown subcommand"),
     }
 }
 
